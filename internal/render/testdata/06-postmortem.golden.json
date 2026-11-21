@@ -1,0 +1,114 @@
+{
+  "blocks": [
+    {
+      "items": [
+        {
+          "label": "Duración",
+          "sev": "error",
+          "unit": "min",
+          "value": "47"
+        },
+        {
+          "label": "Pedidos perdidos",
+          "value": "1,240"
+        },
+        {
+          "label": "Clientes afectados",
+          "sev": "warning",
+          "unit": "%",
+          "value": "8.3"
+        },
+        {
+          "label": "MTTR objetivo",
+          "unit": "min",
+          "value": "30"
+        }
+      ],
+      "t": "kpi"
+    },
+    {
+      "blocks": [
+        {
+          "cols": [
+            {
+              "key": "c0",
+              "label": "Hora",
+              "type": "text"
+            },
+            {
+              "key": "c1",
+              "label": "Evento",
+              "type": "text"
+            }
+          ],
+          "filter": true,
+          "rows": [
+            {
+              "c0": "14:02",
+              "c1": "Deploy de `checkout v4.18`"
+            },
+            {
+              "c0": "14:05",
+              "c1": "Primeras alertas 5xx"
+            },
+            {
+              "c0": "14:31",
+              "c1": "Rollback iniciado"
+            },
+            {
+              "c0": "14:49",
+              "c1": "Servicio estable"
+            }
+          ],
+          "t": "table"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Línea de tiempo"
+    },
+    {
+      "blocks": [
+        {
+          "md": "El nuevo pool de conexiones tenía `max_conns = 5` en lugar de `50` por un typo en `deploy/values-prod.yaml:88`.",
+          "t": "prose"
+        },
+        {
+          "body": "Staging usa `values-staging.yaml`, que no tenía el typo.",
+          "sev": "info",
+          "t": "callout",
+          "title": "Por qué no lo detectaron las pruebas"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Causa raíz"
+    },
+    {
+      "blocks": [
+        {
+          "items": [
+            {
+              "done": false,
+              "id": "chk-1",
+              "owner": "@sre",
+              "sev": "error",
+              "text": "Validar valores de prod en CI"
+            },
+            {
+              "done": false,
+              "id": "chk-2",
+              "owner": "@observabilidad",
+              "text": "Alerta de saturación del pool"
+            }
+          ],
+          "t": "checklist"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Acciones"
+    }
+  ],
+  "title": "Postmortem: caída del checkout (2026-11-12)"
+}

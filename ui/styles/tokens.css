@@ -1,0 +1,430 @@
+/* ==========================================================================
+   DioptraEngine Viewer — ui/styles/tokens.css  ·  v3 "Reliquia"
+   Fuente única de verdad: design/reliquia/SPEC.md (§1 paleta, §0 restricciones)
+   sobre la base v2 (arquitectura_componentes_aprobada.md §1).
+   Tema oscuro por defecto = Reliquia abisal; tema claro = Pergamino de piedra.
+   Ningún token renombrado ni borrado; solo valores reasignados + tokens nuevos.
+   Contraste revalidado: ver tabla al final del archivo.
+   ========================================================================== */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* 1.1 Superficies (escalera de luminancia · piedras) -------------------- */
+  --color-surface-sunken: #0B1017;                 /* abismo · pozos de código, inputs */
+  --color-bg-body: #0B1017;                        /* abismo · lienzo */
+  --color-surface-base: #121A24;                   /* obsidiana · losas, sidebar */
+  --color-surface-raised: #172230;                 /* losa · cabeceras de tabla, toolbars */
+  --color-surface-hover: #1E2C3D;                  /* acero · hover de controles */
+  --color-surface-elevated: #1E2C3D;               /* acero · header sticky, popovers */
+  --color-border: var(--color-ink);                /* contorno de tinta cel-shaded */
+  --color-border-strong: #825F2E;                  /* [R3] bronce · borde en hover · 3.02:1 s/base */
+  --color-border-translucent: rgba(214, 203, 182, 0.18); /* [R3] separador ≥1.5:1 · pergamino translúcido */
+  --color-bg-inactive: #1E2C3D;                    /* [RES] piedra acero */
+
+  /* 1.2 Texto ------------------------------------------------------------- */
+  --color-text-primary: #F1E9D8;                   /* marfil */
+  --color-text-secondary: #D6CBB6;                 /* cuerpo de prosa */
+  --color-text-soft: #ADA390;                      /* muted */
+  --color-text-disabled: #5C5446;                  /* [EXT] exento WCAG · piedra apagada */
+  --color-accent-fg: #EE823A;                      /* cobre fuerte */
+  --color-on-primary: #06080C;                     /* tinta sobre cobre */
+
+  /* 1.3 Acento e interactivos (cobre) ------------------------------------- */
+  --color-accent-soft: rgba(217, 107, 39, 0.14);   /* tinte de selección cobre */
+  --color-accent-ring: rgba(238, 130, 58, 0.45);   /* borde de selección cobre */
+  --color-interactive-primary: #D96B27;            /* solo relleno */
+  --color-interactive-primary-hover: #EE823A;
+  --color-interactive-primary-press: #C25A1E;
+  --color-interactive-secondary: #172230;          /* piedra losa · texto pergamino */
+  --color-interactive-secondary-hover: #1E2C3D;    /* acero */
+  --color-interactive-secondary-press: #0B1017;    /* abismo */
+
+  /* 1.4 Severidad (señal · texto · tinte · borde) ------------------------- */
+  --color-sev-info: #A8B3C2;                       /* azul-acero reliquia */
+  --color-sev-success: #3BA676;                    /* jade */
+  --color-sev-warning: #F4C430;                    /* oro */
+  --color-sev-error: #D94A38;                      /* carmesí */
+  --color-sev-info-fg: #A8B3C2;
+  --color-sev-success-fg: #6FE3AE;
+  --color-sev-warning-fg: #F4C430;
+  --color-sev-error-fg: #FF8A7A;
+  --color-sev-info-bg: #272F3A;
+  --color-sev-success-bg: #182E2F;
+  --color-sev-warning-bg: #323226;
+  --color-sev-error-bg: #2E2127;
+  --color-sev-info-border: #A8B3C2;
+  --color-sev-success-border: #3BA676;
+  --color-sev-warning-border: #F4C430;
+  --color-sev-error-border: #D94A38;
+
+  /* 1.5 Profundidad y luz (sombras duras de tinta, sin blur) -------------- */
+  --shadow-default: 2px 2px 0 var(--color-ink-shadow);
+  --shadow-hover: 3px 4px 0 var(--color-ink-shadow);
+  --shadow-floating: 4px 5px 0 var(--color-ink-shadow);
+  --shadow-inset: var(--bevel-stone);
+  --backdrop-blur-surface: none;                   /* Reliquia: superficies opacas, sin desenfoque */
+  --gradient-accent: linear-gradient(135deg, #9E3F12 0%, #D96B27 55%, #EE823A 100%);
+  --gradient-sheen: none;                          /* Reliquia: sin brillo */
+
+  /* 1.6 Forma (casi recta; el chaflán da la forma) ------------------------ */
+  --rounded-xs: 2px;
+  --rounded-sm: 2px;
+  --rounded-md: 3px;
+  --rounded-lg: 3px;
+  --rounded-full: 999px;                           /* [BASE] intacto */
+  --border-width: 1px;
+  --border-width-accent: 3px;
+
+  /* 1.7 Foco y selección -------------------------------------------------- */
+  --focus-ring: 0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-focus);
+  --color-selection-bg: rgba(217, 107, 39, 0.24);  /* cobre · a 0.32 text-soft cae a 4.49 */
+  --color-row-hover-bg: rgba(229, 178, 92, 0.06);  /* piedra cálida */
+  --color-row-selected-bg: rgba(217, 107, 39, 0.12); /* tinte cobre sobre piedra */
+  --color-match-bg: rgba(240, 210, 36, 0.28);
+  --color-match-active-bg: rgba(240, 210, 36, 0.55);
+
+  /* 1.8 Sintaxis y diff --------------------------------------------------- */
+  --syn-text: var(--color-text-primary);
+  --syn-keyword: #B9A2FF;
+  --syn-string: #6FE3AE;
+  --syn-number: #F4C430;
+  --syn-function: #EE823A;
+  --syn-type: #9CD7FF;
+  --syn-comment: #8C93A0;
+  --diff-add-bg: rgba(59, 166, 118, 0.16);         /* jade */
+  --diff-del-bg: rgba(217, 74, 56, 0.16);          /* carmesí */
+  --code-line-hl-bg: rgba(244, 196, 48, 0.08);     /* oro */
+
+  /* 1.9 Tipografía -------------------------------------------------------- */
+  --font-sans: "Poppins", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fs-micro: 11px;                                /* [v2] solo eyebrows en mayúsculas/kbd */
+  --fs-caption: 12px;
+  --fs-small: 14px;
+  --fs-body: 16px;
+  --fs-subheader: 18px;                            /* [v2] títulos de bloque más contenidos (antes 20) */
+  --fs-h3: 24px;
+  --fs-h2: 28px;
+  --fs-h1: 32px;                                   /* [v2] antes 36 · header sticky menos invasivo */
+  --lh-heading: 1.25;
+  --lh-body: 1.55;
+  --lh-relaxed: 1.7;                               /* [nuevo] prosa larga (prose-block) */
+  --ls-tight: -0.015em;                            /* [v2] títulos */
+  --ls-caps: 0.06em;                               /* [v2] eyebrows */
+
+  /* 1.10 Espaciado, layout, capas, scroll --------------------------------- */
+  --spacing-0: 0px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-7: 32px;
+  --spacing-8: 40px;
+  --spacing-9: 48px;
+  --spacing-10: 56px;
+  --sidebar-width: 288px;
+  --sidebar-width-min: 240px;
+  --sidebar-width-max: 480px;
+  --header-height: 56px;
+  --row-height: 32px;
+  --content-max-width: 1200px;                     /* [v2] medida de lectura más cómoda */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-sidebar: 20;
+  --z-overlay: 30;
+  --z-popover: 40;
+  --z-toast: 50;
+  --scrollbar-size: 10px;
+  --scrollbar-thumb: #34485F;                      /* acero aclarado */
+  --scrollbar-thumb-hover: #C88A36;                /* bronce */
+  --scrollbar-track: #0B1017;                      /* abismo · [nuevo] */
+
+  /* 1.11 Movimiento (spec §3 Motion) -------------------------------------- */
+  --motion-duration-instant: 80ms;                 /* press */
+  --motion-duration-fast: 140ms;                   /* hover, color */
+  --motion-duration-normal: 220ms;                 /* plegables, toasts */
+  --motion-duration-slow: 360ms;                   /* entradas de bloque */
+  --motion-duration-deliberate: 560ms;             /* revelado de tema, progreso */
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-easing-snappy: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-easing-decelerate: cubic-bezier(0, 0, 0, 1);
+  --motion-easing-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --motion-easing-emphasized: cubic-bezier(0.22, 1, 0.36, 1);   /* [impeccable] ease-out-quint, sin rebote */
+  --motion-stagger: 40ms;
+  --motion-distance-sm: 4px;
+  --motion-distance-md: 8px;
+  --toast-life: 2600ms;                            /* [v2] acoplado a TOAST_LIFE_MS en dx-app.js */
+
+  /* 1.12 Sombras contextuales */
+  --shadow-header-settled: 0 3px 0 var(--color-ink-shadow);
+
+  /* 1.13 Reliquia: materiales nuevos (SPEC §1) ---------------------------- */
+  --color-ink: #06080C;
+  --color-ink-shadow: #040609;
+  --color-copper: #D96B27;
+  --color-copper-strong: #EE823A;
+  --color-copper-deep: #9E3F12;
+  --color-bronze: #C88A36;
+  --color-bronze-light: #E5B25C;
+  --color-gold: #F4C430;
+  --color-gold-glow: #FFF29C;
+  --color-stone-abyss: #0B1017;
+  --color-stone-obsidian: #121A24;
+  --color-stone-slab: #172230;
+  --color-stone-steel: #1E2C3D;
+  --shadow-ink-sm: 2px 2px 0 var(--color-ink-shadow);
+  --shadow-ink-md: 3px 4px 0 var(--color-ink-shadow);
+  --shadow-ink-lg: 4px 5px 0 var(--color-ink-shadow);
+  --bevel-stone: inset 0 1px 0 rgba(255, 224, 170, 0.16), inset 0 -2px 0 rgba(4, 6, 9, 0.75);
+  --bevel-copper: inset 0 1px 0 rgba(255, 214, 153, 0.42), inset 0 -2px 0 rgba(88, 30, 6, 0.85);
+  --clip-chamfer-sm: polygon(7px 0, calc(100% - 7px) 0, 100% 7px, 100% calc(100% - 7px), calc(100% - 7px) 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  --clip-chamfer-md: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  --font-display: "Cinzel", "Trajan Pro", "Cormorant SC", "Palatino Linotype", Georgia, serif;
+  --color-gold-text: #F4C430;                      /* oro para texto · 10.66:1 s/base */
+  --color-bronze-text: #E5B25C;                    /* [nuevo] bronce para texto · 9.05:1 s/base · 8.30:1 s/raised */
+  --color-scrim: rgba(4, 6, 9, 0.62);              /* [R2-R1] velo del drawer · tinta abisal */
+
+  /* 1.14 Ronda 3: sigilo, foco y controles ------------------------------- */
+  --sigil-ink: #0E1116;                            /* [R3] contorno del sigilo */
+  --sigil-rim: rgba(229, 178, 92, 0.28);           /* [R3] halo de silueta sobre abismo */
+  --clip-chamfer-xs: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
+  --color-focus: #F4C430;                          /* [R3] anillo de foco · oro */
+  --color-control-border: #C88A36;                 /* [R3] contorno de controles · bronce */
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --color-surface-sunken: #EDE7D5;                 /* abismo claro · pozos de código */
+  --color-bg-body: #EDE7D5;                        /* lienzo pergamino */
+  --color-surface-base: #E4DEC9;                   /* obsidiana clara · losas */
+  --color-surface-raised: #D8D0B8;                 /* losa */
+  --color-surface-hover: #C9C0AA;                  /* acero */
+  --color-surface-elevated: #C9C0AA;
+  --color-border: var(--color-ink);                /* contorno de tinta */
+  --color-border-strong: #8E5E1E;                  /* bronce */
+  --color-border-translucent: rgba(26, 20, 16, 0.21); /* [R3] separador ≥1.5:1 · tinta translúcida */
+  --color-bg-inactive: #DEDEDE;
+  --color-text-primary: #1A1410;
+  --color-text-secondary: #33281F;
+  --color-text-soft: #4E3F31;
+  --color-text-disabled: #A4A4A4;
+  --color-accent-fg: #7A2E0B;
+  --color-accent-soft: rgba(180, 83, 26, 0.10);
+  --color-accent-ring: rgba(180, 83, 26, 0.40);
+  --color-on-primary: #FFFFFF;
+  --color-interactive-primary: #B4531A;
+  --color-interactive-primary-hover: #9E3F12;
+  --color-interactive-primary-press: #7A2E0B;
+  --color-interactive-secondary: #D8D0B8;          /* losa */
+  --color-interactive-secondary-hover: #C9C0AA;    /* acero */
+  --color-interactive-secondary-press: #EDE7D5;    /* abismo claro (hundido) */
+  --color-sev-info: #2F3A4A;
+  --color-sev-success: #17533A;
+  --color-sev-warning: #9A7400;                    /* oro claro · solo no-texto (3.20:1) */
+  --color-sev-error: #861D10;
+  --color-sev-info-fg: #2F3A4A;
+  --color-sev-success-fg: #17533A;
+  --color-sev-warning-fg: #574100;
+  --color-sev-error-fg: #861D10;
+  --color-sev-info-bg: #CECCBD;
+  --color-sev-success-bg: #C9D5BC;
+  --color-sev-warning-bg: #D8CDA9;
+  --color-sev-error-bg: #E2C6B2;
+  --color-sev-info-border: #2F3A4A;
+  --color-sev-success-border: #17533A;
+  --color-sev-warning-border: #9A7400;
+  --color-sev-error-border: #861D10;
+  --shadow-default: 2px 2px 0 var(--color-ink-shadow);
+  --shadow-hover: 3px 4px 0 var(--color-ink-shadow);
+  --shadow-floating: 4px 5px 0 var(--color-ink-shadow);
+  --shadow-inset: var(--bevel-stone);
+  --shadow-header-settled: 0 3px 0 var(--color-ink-shadow);
+  --gradient-accent: linear-gradient(135deg, #7A2E0B 0%, #B4531A 55%, #C9621F 100%);
+  --gradient-sheen: none;                          /* Reliquia: sin brillo */
+  --backdrop-blur-surface: none;                   /* Reliquia: superficies opacas */
+  --lh-relaxed: 1.7;                               /* [nuevo] prosa larga (prose-block) */
+  --rounded-xs: 2px;
+  --rounded-sm: 2px;
+  --rounded-md: 3px;
+  --rounded-lg: 3px;
+  --focus-ring: 0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-focus);
+  --color-selection-bg: rgba(180, 83, 26, 0.22);   /* cobre · a 0.25 syn-comment cae a 4.41 */
+  --color-row-hover-bg: rgba(142, 94, 30, 0.08);   /* piedra cálida */
+  --color-row-selected-bg: rgba(180, 83, 26, 0.12);
+  --color-match-bg: rgba(240, 210, 36, 0.40);
+  --color-match-active-bg: rgba(240, 210, 36, 0.70);
+  --syn-text: var(--color-text-primary);
+  --syn-keyword: #5E1C94;
+  --syn-string: #17533A;
+  --syn-number: #7A2E0B;
+  --syn-function: #00507F;
+  --syn-type: #05297A;
+  --syn-comment: #4E5566;
+  --diff-add-bg: rgba(59, 166, 118, 0.18);         /* jade */
+  --diff-del-bg: rgba(217, 74, 56, 0.16);          /* carmesí */
+  --code-line-hl-bg: rgba(154, 116, 0, 0.12);      /* oro */
+  --scrollbar-thumb: #A99F87;                      /* acero oscurecido */
+  --scrollbar-thumb-hover: #8E5E1E;                /* bronce */
+  --scrollbar-track: #EDE7D5;                      /* abismo claro */
+  /* Reliquia: materiales nuevos (SPEC §1) */
+  --color-ink: #2A1E14;                            /* [R1] marrón profundo, no negro · 12.05:1 s/base */
+  --color-ink-shadow: rgba(60, 40, 20, 0.28);      /* [R1] sombra parda suave */
+  --color-copper: #B4531A;
+  --color-copper-strong: #C9621F;
+  --color-copper-deep: #7A2E0B;
+  --color-bronze: #8E5E1E;
+  --color-bronze-light: #A8722A;
+  --color-gold: #9A7400;                           /* solo no-texto (3.20:1) */
+  --color-gold-glow: #C79A10;
+  --color-stone-abyss: #EDE7D5;
+  --color-stone-obsidian: #E4DEC9;
+  --color-stone-slab: #D8D0B8;
+  --color-stone-steel: #C9C0AA;
+  --shadow-ink-sm: 1px 1px 0 var(--color-ink-shadow);   /* [R1] desplazamientos 1-2 px en claro */
+  --shadow-ink-md: 2px 2px 0 var(--color-ink-shadow);
+  --shadow-ink-lg: 2px 3px 0 var(--color-ink-shadow);
+  --bevel-stone: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(60, 40, 20, 0.12); /* [R1] más suave */
+  --color-scrim: rgba(42, 30, 20, 0.38);           /* [R2-R1] velo del drawer · tinta parda */
+  --bevel-copper: inset 0 1px 0 rgba(255, 236, 210, 0.45), inset 0 -2px 0 rgba(90, 32, 6, 0.5); /* 0.85 ensuciaba #B4531A */
+  --clip-chamfer-sm: polygon(7px 0, calc(100% - 7px) 0, 100% 7px, 100% calc(100% - 7px), calc(100% - 7px) 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  --clip-chamfer-md: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  --font-display: "Cinzel", "Trajan Pro", "Cormorant SC", "Palatino Linotype", Georgia, serif;
+  --color-gold-text: #574100;                      /* oro para texto · 7.21:1 s/base */
+  --color-bronze-text: #6B4512;                    /* [nuevo] bronce para texto · 6.27:1 s/base · 5.49:1 s/raised */
+  /* Ronda 3: sigilo, foco y controles (clip-chamfer-xs se hereda de :root) */
+  --sigil-ink: #2A1E14;                            /* [R3] marrón tinta */
+  --sigil-rim: transparent;                        /* [R3] sin halo en claro */
+  --color-focus: #7A2E0B;                          /* [R3] cobre profundo */
+  --color-control-border: var(--color-ink);        /* [R3] contorno de controles · tinta */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  [data-theme="dark"],
+  [data-theme="light"] {
+    --motion-duration-instant: 0ms;
+    --motion-duration-fast: 0ms;
+    --motion-duration-normal: 0ms;
+    --motion-duration-slow: 0ms;
+    --motion-duration-deliberate: 0ms;
+    --motion-stagger: 0ms;
+    --motion-distance-sm: 0px;
+    --motion-distance-md: 0px;
+  }
+}
+
+::selection {
+  background: var(--color-selection-bg);
+}
+
+/* Keyframes globales (solo Light DOM; el Shadow DOM declara los suyos) ----- */
+@keyframes dx-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dx-rise-in {
+  from { opacity: 0; transform: translate3d(0, var(--motion-distance-md, 8px), 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes dx-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes dx-shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+
+/* Tipografía tabular y utilidades globales ------------------------------ */
+.tabular-nums,
+table[data-numeric="true"] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-variant-ligatures: none;
+}
+
+/* Barras de desplazamiento globales ------------------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track, transparent);
+}
+
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, transparent);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: var(--rounded-full);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+/* --------------------------------------------------------------------------
+   Tabla de contraste "Reliquia" (WCAG 2.x; valores calculados y validados
+   en el análisis previo; umbral texto ≥ 4.5:1, no-texto ≥ 3:1).
+   OSCURO (sobre surface-base #121A24 y sobre su *-bg)
+     text-primary #F1E9D8 · text-secondary #D6CBB6 · text-soft #ADA390  ≥ 4.5 (AA/AAA)
+     accent-fg #EE823A · on-primary #06080C sobre #D96B27/#EE823A/#C25A1E  ≥ 4.5
+     sev-fg info #A8B3C2/#272F3A · success #6FE3AE/#182E2F
+            warning #F4C430/#323226 · error #FF8A7A/#2E2127                ≥ 4.5
+     syn kw #B9A2FF str #6FE3AE num #F4C430 fn #EE823A type #9CD7FF
+         comment #8C93A0 sobre sunken #0B1017                             ≥ 4.5
+   CLARO (sobre surface-base #E4DEC9 y sobre su *-bg)
+     text-primary #1A1410 · secondary #33281F · soft #4E3F31             ≥ 4.5
+     accent-fg #7A2E0B · on-primary #FFFFFF sobre #B4531A/#9E3F12/#7A2E0B ≥ 4.5
+     sev-fg info #2F3A4A/#CECCBD · success #17533A/#C9D5BC
+            warning #574100/#D8CDA9 · error #861D10/#E2C6B2                ≥ 4.5
+     syn kw #5E1C94 str #17533A num #7A2E0B fn #00507F type #05297A
+         comment #4E5566 sobre sunken #EDE7D5                             ≥ 4.5
+     gold / sev-warning / sev-warning-border #9A7400 = 3.20:1 → SOLO no-texto
+   PASE 2 (luminancia relativa; alfa mezclada sobre el plano real)
+   OSCURO  interactive-secondary #172230: primary 13.29 · secondary 10.00 · soft 6.44 · accent-fg 6.03
+           -hover #1E2C3D: 11.73 / 8.82 / 5.68 / 5.32 · -press #0B1017: 15.80 / 11.88 / 7.65
+           selection cobre .24 s/base: primary 10.64 · soft 5.15 ; s/sunken syn-comment 4.58
+           row-selected cobre .12 s/base: primary 12.63 · soft 6.12 · accent-fg 5.73
+           code-line-hl oro .08 s/sunken: syn mín (comment) 5.42 · fn 6.29 · primary 13.85
+           diff-add jade .16: comment 5.00 · fn 5.80 · success-fg 9.77
+           diff-del carmesí .16: comment 5.38 · error-fg 7.26
+           no-texto: border-strong #5A4220 2.03 s/abismo (filete; la tinta aporta el 3:1)
+                     scrollbar thumb #34485F 2.03 · hover bronce #C88A36 6.49 s/abismo
+   CLARO   interactive-secondary #D8D0B8: primary 11.84 · secondary 9.31 · soft 6.56 · accent-fg 6.13
+           -hover #C9C0AA: 10.08 / 7.93 / 5.58 / 5.22 · -press #EDE7D5: 14.76 / 11.61 / 8.17
+           selection cobre .22 s/base: primary 10.36 · soft 5.74 ; s/sunken syn-comment 4.56
+           row-selected cobre .12 s/base: primary 11.72 · soft 6.49 · accent-fg 6.07
+           code-line-hl oro .12 s/sunken: syn mín (comment) 5.30 · primary 12.95
+           diff-add jade .18: comment 5.16 ; diff-del carmesí .16: comment 4.99
+           no-texto: border-strong #8E5E1E 4.14 s/base · thumb #A99F87 2.13 · hover 4.51
+   PASE 3 (JD S4 · --color-bronze-text, sustituye bronze-light/gold como TEXTO)
+   OSCURO  #E5B25C: 9.05 s/base #121A24 · 8.30 s/raised #172230              ≥ 4.5
+   CLARO   #6B4512: 6.27 s/base #E4DEC9 · 5.49 s/raised #D8D0B8              ≥ 4.5
+   -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+   RONDA 2 — contrastes tema claro (s/base #E4DEC9 / s/raised #D8D0B8)
+     text-primary   13.54 / 11.84      text-secondary 10.65 / 9.31
+     text-soft       7.50 / 6.56       accent-fg       7.01 / 6.13
+     bronze-text     6.27 / 5.49       gold-text       7.21 / 6.31
+     ink #2A1E14    12.05 / 10.53      on-primary s/copper 5.01
+     sev-fg info 7.12 · success 5.88 · warning 6.12 · error 5.90      ≥ 4.5
+     borde cobre seleccionado 3.72 / 3.25                             ≥ 3 (no-texto)
+   -------------------------------------------------------------------------- */

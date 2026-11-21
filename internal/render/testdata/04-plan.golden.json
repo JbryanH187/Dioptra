@@ -1,0 +1,75 @@
+{
+  "blocks": [
+    {
+      "blocks": [
+        {
+          "md": "Hoy corremos PostgreSQL 13, que sale de soporte en noviembre. La migración afecta a 4 servicios.",
+          "t": "prose"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Contexto"
+    },
+    {
+      "blocks": [
+        {
+          "md": "1. Preparar el entorno\n  1. Crear réplica lógica en la versión 17.\n  2. Validar extensiones: `pg_trgm`, `pgcrypto`.\n2. Migrar datos\n  - Usar `pg_upgrade --link` en staging.\n  - Medir tiempo de corte; objetivo \u003c 5 min.\n3. Cortar tráfico\n  1. Poner servicios en modo solo lectura.\n  2. Promover réplica.\n  3. Reapuntar los DSN.",
+          "t": "prose"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Pasos"
+    },
+    {
+      "blocks": [
+        {
+          "md": "\u003e Si la réplica se atrasa más de 30 s, el corte se pospone. Esta es una regla del equipo de datos, no una sugerencia.",
+          "t": "prose"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Riesgos"
+    },
+    {
+      "blocks": [
+        {
+          "items": [
+            {
+              "done": false,
+              "id": "chk-1",
+              "owner": "@datos",
+              "text": "Crear réplica en staging"
+            },
+            {
+              "done": false,
+              "id": "chk-2",
+              "owner": "@datos",
+              "text": "Validar extensiones"
+            },
+            {
+              "done": false,
+              "id": "chk-3",
+              "owner": "@sre",
+              "sev": "warning",
+              "text": "Ensayo de corte"
+            },
+            {
+              "done": false,
+              "id": "chk-4",
+              "owner": "@pm",
+              "text": "Comunicar ventana de mantenimiento"
+            }
+          ],
+          "t": "checklist"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Tareas"
+    }
+  ],
+  "title": "Plan de migración a PostgreSQL 17"
+}

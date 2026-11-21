@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node (UI ES module syntax check)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check formatting (gofmt)
+        shell: bash
+        run: |
+          unformatted=$(gofmt -l cmd internal ui)
+          if [ -n "$unformatted" ]; then
+            echo "Unformatted Go files:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Check UI ES modules syntax
+        shell: bash
+        run: node --experimental-vm-modules --no-warnings scripts/check-ui.mjs ui/components/*.js ui/app.js ui/theme-init.js
+
+      - name: Run Go tests with race detector (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: go test -race -count=1 ./...
+
+      - name: Run Go tests (Windows)
+        if: runner.os == 'Windows'
+        run: go test -count=1 ./...
+
+      - name: Build single binary (CGO_ENABLED=0)
+        shell: bash
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          ext=""
+          if [ "${{ runner.os }}" = "Windows" ]; then ext=".exe"; fi
+          go build -trimpath -ldflags "-s -w -X main.Version=ci" -o "dist/dioptra${ext}" ./cmd/dioptra
+          "./dist/dioptra${ext}" --version

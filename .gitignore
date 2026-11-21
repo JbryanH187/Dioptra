@@ -1,0 +1,26 @@
+# Binarios y artefactos
+/dioptra
+dioptra.exe
+*.exe
+*.test
+*.out
+dist/
+releases/
+
+# Datos locales (nunca versionar)
+*.db
+*.db-wal
+*.db-shm
+.dioptra/
+
+# Secretos
+.env
+.env.*
+
+# Skills y config de herramientas externas (respaldadas aparte)
+.agent/
+.agents/
+.claude/
+.devin/
+.gemini/
+.kiro/

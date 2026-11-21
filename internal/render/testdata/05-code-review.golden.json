@@ -1,0 +1,59 @@
+{
+  "blocks": [
+    {
+      "blocks": [
+        {
+          "md": "**Aprobado con cambios.** La lógica es correcta, pero hay un problema de concurrencia.",
+          "t": "prose"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Veredicto"
+    },
+    {
+      "blocks": [
+        {
+          "lang": "diff",
+          "src": "--- a/internal/cache/lru.go\n+++ b/internal/cache/lru.go\n@@ -40,7 +40,9 @@ func (c *LRU) Get(k string) (V, bool) {\n-\te, ok := c.items[k]\n+\tc.mu.Lock()\n+\tdefer c.mu.Unlock()\n+\te, ok := c.items[k]\n \tif !ok {",
+          "t": "code"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Cambio sugerido en el caché"
+    },
+    {
+      "blocks": [
+        {
+          "md": "- `internal/cache/lru.go`: el mapa se lee sin candado. Ejemplo de la carrera:",
+          "t": "prose"
+        },
+        {
+          "lang": "go",
+          "src": "go c.Get(\"a\")\ngo c.Set(\"a\", 1)",
+          "t": "code"
+        },
+        {
+          "md": "- `internal/cache/lru_test.go`: falta un test con `-race`.",
+          "t": "prose"
+        },
+        {
+          "blocks": [
+            {
+              "md": "internal/cache/lru.go:41: possible data race on c.items",
+              "t": "prose"
+            }
+          ],
+          "open": false,
+          "t": "section",
+          "title": "Salida completa de go vet"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Comentarios por archivo"
+    }
+  ],
+  "title": "Revisión de código: PR #482"
+}

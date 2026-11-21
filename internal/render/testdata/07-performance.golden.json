@@ -1,0 +1,81 @@
+{
+  "blocks": [
+    {
+      "md": "Bajamos el p95 de **820 ms a 140 ms** (-83%).",
+      "t": "prose"
+    },
+    {
+      "blocks": [
+        {
+          "cols": [
+            {
+              "key": "c0",
+              "label": "Métrica",
+              "type": "text"
+            },
+            {
+              "key": "c1",
+              "label": "Antes",
+              "type": "num"
+            },
+            {
+              "key": "c2",
+              "label": "Después",
+              "type": "num"
+            }
+          ],
+          "filter": false,
+          "rows": [
+            {
+              "c0": "p50 (ms)",
+              "c1": "310",
+              "c2": "60"
+            },
+            {
+              "c0": "p95 (ms)",
+              "c1": "820",
+              "c2": "140"
+            },
+            {
+              "c0": "Allocs/op",
+              "c1": "1,940",
+              "c2": "212"
+            }
+          ],
+          "t": "table"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Antes y después"
+    },
+    {
+      "blocks": [
+        {
+          "md": "1. Índice GIN sobre `products.search_vector`.\n2. Se eliminó un `N+1` en `internal/search/repo.go:118`.\n3. Pool de `bytes.Buffer` con `sync.Pool`.",
+          "t": "prose"
+        },
+        {
+          "lang": "go",
+          "src": "var bufPool = sync.Pool{New: func() any { return new(bytes.Buffer) }}",
+          "t": "code"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Qué cambió"
+    },
+    {
+      "blocks": [
+        {
+          "md": "Medir con tráfico real durante una semana antes de cerrar el ticket.",
+          "t": "prose"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Pendiente"
+    }
+  ],
+  "title": "Optimización del endpoint /search"
+}

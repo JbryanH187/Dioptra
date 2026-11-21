@@ -1,0 +1,144 @@
+{
+  "blocks": [
+    {
+      "md": "El sistema recibe eventos de dominio y los entrega por canal según las preferencias del usuario.",
+      "t": "prose"
+    },
+    {
+      "blocks": [
+        {
+          "edges": [
+            [
+              "A",
+              "B",
+              "evento"
+            ],
+            [
+              "B",
+              "C"
+            ],
+            [
+              "C",
+              "D",
+              "email"
+            ],
+            [
+              "C",
+              "E",
+              "push"
+            ],
+            [
+              "C",
+              "F",
+              "sms"
+            ],
+            [
+              "B",
+              "G"
+            ]
+          ],
+          "kind": "flow",
+          "nodes": [
+            {
+              "id": "A",
+              "label": "API Gateway"
+            },
+            {
+              "id": "B",
+              "label": "Router de eventos"
+            },
+            {
+              "id": "C",
+              "label": "¿Canal?"
+            },
+            {
+              "id": "D",
+              "label": "Worker SMTP"
+            },
+            {
+              "id": "E",
+              "label": "Worker FCM"
+            },
+            {
+              "id": "F",
+              "label": "Worker Twilio"
+            },
+            {
+              "id": "G",
+              "label": "PostgreSQL · Persistencia"
+            }
+          ],
+          "t": "diagram"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Flujo principal"
+    },
+    {
+      "blocks": [
+        {
+          "cols": [
+            {
+              "key": "c0",
+              "label": "Componente",
+              "type": "text"
+            },
+            {
+              "key": "c1",
+              "label": "Lenguaje",
+              "type": "text"
+            },
+            {
+              "key": "c2",
+              "label": "Réplicas",
+              "type": "num"
+            },
+            {
+              "key": "c3",
+              "label": "Latencia p95 (ms)",
+              "type": "num"
+            }
+          ],
+          "filter": false,
+          "rows": [
+            {
+              "c0": "Router",
+              "c1": "Go",
+              "c2": "3",
+              "c3": "12"
+            },
+            {
+              "c0": "Worker SMTP",
+              "c1": "Go",
+              "c2": "2",
+              "c3": "340"
+            },
+            {
+              "c0": "Worker FCM",
+              "c1": "Node",
+              "c2": "2",
+              "c3": "95"
+            }
+          ],
+          "t": "table"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Componentes"
+    },
+    {
+      "blocks": [
+        {
+          "md": "La cola es **Kafka** porque necesitamos reprocesar eventos (ver docs/adr/0007-kafka.md).\n\n---\n\nDiagrama de despliegue:\n\n![Despliegue en Kubernetes](docs/img/deploy.png)",
+          "t": "prose"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Decisiones"
+    }
+  ],
+  "title": "Arquitectura del motor de notificaciones"
+}

@@ -1,0 +1,122 @@
+{
+  "blocks": [
+    {
+      "md": "Revisé **12 archivos** del servicio `payments-api` y encontré *tres* problemas críticos. El detalle de cada uno está abajo, con su ubicación exacta.",
+      "t": "prose"
+    },
+    {
+      "blocks": [
+        {
+          "md": "La autenticación está bien resuelta, pero el manejo de reintentos filtra goroutines y el endpoint de reembolsos no valida el monto.",
+          "t": "prose"
+        },
+        {
+          "body": "Un atacante puede pedir reembolsos mayores al cargo original (internal/refunds/handler.go:57).",
+          "ref": "internal/refunds/handler.go:57",
+          "sev": "warning",
+          "t": "callout",
+          "title": "Riesgo principal"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Resumen ejecutivo"
+    },
+    {
+      "blocks": [
+        {
+          "md": "### Críticos",
+          "t": "prose"
+        },
+        {
+          "cols": [
+            {
+              "key": "c0",
+              "label": "Severidad",
+              "type": "sev"
+            },
+            {
+              "key": "c1",
+              "label": "Hallazgo",
+              "type": "text"
+            },
+            {
+              "key": "c2",
+              "label": "Ubicación",
+              "type": "ref"
+            }
+          ],
+          "filter": false,
+          "rows": [
+            {
+              "c0": "error",
+              "c1": "Reembolso sin validar monto",
+              "c2": "internal/refunds/handler.go:57"
+            },
+            {
+              "c0": "error",
+              "c1": "Fuga de goroutines en reintentos",
+              "c2": "internal/payments/retry.go:44"
+            },
+            {
+              "c0": "warning",
+              "c1": "Logs con número de tarjeta parcial",
+              "c2": "internal/log/mask.go:12"
+            }
+          ],
+          "t": "table"
+        },
+        {
+          "md": "### Menores\n\n- El timeout del cliente HTTP es de 60 s; conviene bajarlo a 10 s.\n- Falta `context` en tres funciones públicas:\n  - `Charge` en internal/payments/charge.go:20\n  - `Refund` en internal/refunds/refund.go:31\n  - `Void` en internal/payments/void.go:9",
+          "t": "prose"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Hallazgos"
+    },
+    {
+      "blocks": [
+        {
+          "md": "1. Validar `amount \u003c= original.amount` antes de crear el reembolso.\n2. Cerrar el canal de respuesta en el `select` de timeout.\n3. Enmascarar la tarjeta completa con `mask.PAN()`.",
+          "t": "prose"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Recomendaciones"
+    },
+    {
+      "blocks": [
+        {
+          "items": [
+            {
+              "done": false,
+              "id": "chk-1",
+              "owner": "@backend",
+              "sev": "error",
+              "text": "Parchear validación de monto"
+            },
+            {
+              "done": false,
+              "id": "chk-2",
+              "owner": "@backend",
+              "text": "Agregar test de regresión para la fuga"
+            },
+            {
+              "done": true,
+              "id": "chk-3",
+              "owner": "@seguridad",
+              "text": "Confirmar alcance con el equipo de riesgo"
+            }
+          ],
+          "t": "checklist"
+        }
+      ],
+      "open": true,
+      "t": "section",
+      "title": "Próximos pasos"
+    }
+  ],
+  "title": "Auditoría de seguridad: API de pagos"
+}

@@ -1,0 +1,68 @@
+{
+  "blocks": [
+    {
+      "edges": [
+        [
+          "U",
+          "W",
+          "Click \"Entrar"
+        ],
+        [
+          "W",
+          "A",
+          "/authorize (PKCE)"
+        ],
+        [
+          "A-",
+          "U",
+          "Pantalla de consentimiento"
+        ],
+        [
+          "U",
+          "A",
+          "Acepta"
+        ],
+        [
+          "A-",
+          "W",
+          "code"
+        ],
+        [
+          "W",
+          "A",
+          "/token + verifier"
+        ],
+        [
+          "A-",
+          "W",
+          "access_token"
+        ]
+      ],
+      "kind": "seq",
+      "nodes": [
+        {
+          "id": "U",
+          "label": "Usuario"
+        },
+        {
+          "id": "W",
+          "label": "Web"
+        },
+        {
+          "id": "A",
+          "label": "AuthServer"
+        },
+        {
+          "id": "A-",
+          "label": "A-"
+        }
+      ],
+      "t": "diagram"
+    },
+    {
+      "md": "El `verifier` nunca sale del navegador; por eso PKCE protege contra intercepción del `code`.",
+      "t": "prose"
+    }
+  ],
+  "title": "Flujo de login con OAuth"
+}
