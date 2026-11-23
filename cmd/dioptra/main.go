@@ -81,7 +81,7 @@ func printUsage(out *os.File) {
 	fmt.Fprintln(out, "DioptraEngine — Visor técnico local y servidor MCP en binario único")
 	fmt.Fprintln(out, "")
 	fmt.Fprintln(out, "Uso:")
-	fmt.Fprintln(out, "  dioptra serve [--port 7474] [--dir ~/.dioptra/reports]")
+	fmt.Fprintln(out, "  dioptra serve [--port 7474] [--dir ~/.dioptra/reports] [--allow-host host1,host2]")
 	fmt.Fprintln(out, "  dioptra mcp   [--port 7474] [--dir ~/.dioptra/reports]")
 	fmt.Fprintln(out, "  dioptra start [--port 7474] [--dir ~/.dioptra/reports]   (demonio en segundo plano)")
 	fmt.Fprintln(out, "  dioptra autostart on|off|status [--port 7474] [--dir ~/.dioptra/reports]   (al iniciar sesión, Windows)")
@@ -115,6 +115,7 @@ func runServe(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	port := fs.Int("port", defaultPort, "Puerto TCP loopback (127.0.0.1)")
 	dir := fs.String("dir", store.DefaultReportsDir(), "Directorio raíz de reportes Markdown")
+	allowHost := fs.String("allow-host", os.Getenv("DIOPTRA_ALLOW_HOSTS"), "Hosts adicionales explícitos separados por coma (ej. Tailscale MagicDNS)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -134,10 +135,16 @@ func runServe(args []string) error {
 	addr := fmt.Sprintf("127.0.0.1:%d", *port)
 	baseURL := fmt.Sprintf("http://%s", addr)
 
+	var extraHosts []string
+	if strings.TrimSpace(*allowHost) != "" {
+		extraHosts = strings.Split(*allowHost, ",")
+	}
+
 	appSrv := server.New(server.Options{
-		Store:     st,
-		BaseURL:   baseURL,
-		LayoutCfg: layoutagent.ConfigFromEnv(),
+		Store:        st,
+		BaseURL:      baseURL,
+		LayoutCfg:    layoutagent.ConfigFromEnv(),
+		AllowedHosts: extraHosts,
 	})
 
 	// Vigilante ligero de archivos .md nuevos depositados directamente en disco

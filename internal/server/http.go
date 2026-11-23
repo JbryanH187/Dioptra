@@ -39,11 +39,12 @@ addEventListener("DOMContentLoaded",()=>{let last=0;const send=()=>{const h=Math
 
 // AppServer encapsula el almacén, hub SSE, configuración y enrutador HTTP/MCP.
 type AppServer struct {
-	store     *store.Store
-	hub       *SSEHub
-	baseURL   string
-	layoutCfg layoutagent.Config
-	mux       *http.ServeMux
+	store        *store.Store
+	hub          *SSEHub
+	baseURL      string
+	layoutCfg    layoutagent.Config
+	allowedHosts map[string]struct{}
+	mux          *http.ServeMux
 
 	e2eOnce sync.Once
 	e2e     *e2e.Manager
@@ -54,9 +55,10 @@ type AppServer struct {
 
 // Options configura una instancia de AppServer.
 type Options struct {
-	Store     *store.Store
-	BaseURL   string
-	LayoutCfg layoutagent.Config
+	Store        *store.Store
+	BaseURL      string
+	LayoutCfg    layoutagent.Config
+	AllowedHosts []string
 }
 
 // New construye el servidor HTTP completo con todas las rutas REST, SSE, /canvas y /mcp.
@@ -66,11 +68,12 @@ func New(opts Options) *AppServer {
 		base = "http://127.0.0.1:7474"
 	}
 	s := &AppServer{
-		store:     opts.Store,
-		hub:       NewSSEHub(),
-		baseURL:   base,
-		layoutCfg: opts.LayoutCfg,
-		mux:       http.NewServeMux(),
+		store:        opts.Store,
+		hub:          NewSSEHub(),
+		baseURL:      base,
+		layoutCfg:    opts.LayoutCfg,
+		allowedHosts: normalizeAllowedHosts(opts.AllowedHosts),
+		mux:          http.NewServeMux(),
 	}
 	s.registerRoutes()
 	return s
@@ -84,7 +87,7 @@ func (s *AppServer) Hub() *SSEHub {
 // ServeHTTP implementa http.Handler. Toda solicitud pasa primero por la
 // guardia anti DNS-rebinding / CSRF (guard.go).
 func (s *AppServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if status, code, msg := guardRequest(r); status != 0 {
+	if status, code, msg := guardRequest(r, s.allowedHosts); status != 0 {
 		writeJSON(w, status, map[string]any{"error": code, "message": msg})
 		return
 	}

@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"dioptra/internal/layoutagent"
 	"dioptra/internal/mcpserver"
+	"dioptra/internal/server"
+	"dioptra/internal/store"
 )
 
 const guardMD = "# Guardia\n\n- [ ] Aprobar despliegue\n- [ ] Borrar tabla\n"
@@ -171,5 +174,46 @@ func TestStatic_ETagAndFontCaching(t *testing.T) {
 	font.Body.Close()
 	if font.StatusCode != http.StatusOK || !strings.Contains(font.Header.Get("Cache-Control"), "immutable") {
 		t.Fatalf("fuente: status=%d cache=%q", font.StatusCode, font.Header.Get("Cache-Control"))
+	}
+}
+
+// TestGuard_AllowHostOptIn comprueba que --allow-host autoriza únicamente los
+// hosts explícitos (ej. Tailscale MagicDNS), rechaza comodines (*) y mantiene
+// las defensas contra DNS rebinding y Origin cruzado.
+func TestGuard_AllowHostOptIn(t *testing.T) {
+	st, err := store.Open(t.TempDir())
+	if err != nil {
+		t.Fatalf("store.Open: %v", err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+
+	appSrv := server.New(server.Options{
+		Store:        st,
+		BaseURL:      "http://127.0.0.1:7474",
+		AllowedHosts: []string{"masterrace.taild51ef4.ts.net", "masterrace", "*"},
+	})
+	ts := httptest.NewServer(appSrv)
+	t.Cleanup(ts.Close)
+
+	id := publishForGuard(t, ts.URL)
+
+	cases := []guardCase{
+		{"GET raíz con host Tailscale permitido", "GET", "/", "", nil, "masterrace.taild51ef4.ts.net:7474", http.StatusOK},
+		{"GET reportes con host corto permitido", "GET", "/api/reports", "", nil, "masterrace:7474", http.StatusOK},
+		{"PATCH mismo origen Tailscale HTTP", "PATCH", "/api/reports/{id}/check", `{"id":"chk-1","done":true}`,
+			map[string]string{"Content-Type": "application/json", "Origin": "http://masterrace.taild51ef4.ts.net:7474", "Sec-Fetch-Site": "same-origin"},
+			"masterrace.taild51ef4.ts.net:7474", http.StatusOK},
+		{"PATCH mismo origen Tailscale HTTPS vía proxy loopback", "PATCH", "/api/reports/{id}/check", `{"id":"chk-1","done":false}`,
+			map[string]string{"Content-Type": "application/json", "Origin": "https://masterrace.taild51ef4.ts.net", "X-Forwarded-Proto": "https"},
+			"masterrace.taild51ef4.ts.net", http.StatusOK},
+		{"Host Tailscale + Origin ajeno sigue bloqueado", "POST", "/api/reports", `{"title":"x","project":"evil","markdown":"# x"}`,
+			map[string]string{"Content-Type": "application/json", "Origin": "http://evil.example"},
+			"masterrace.taild51ef4.ts.net:7474", http.StatusForbidden},
+		{"Comodín (*) en AllowedHosts se ignora y host ajeno sigue 403", "GET", "/api/reports", "", nil, "evil.example:7474", http.StatusForbidden},
+	}
+	for _, c := range cases {
+		if got, body := doGuard(t, ts.URL, id, c); got != c.want {
+			t.Errorf("%s: esperaba %d, obtuvo %d (%s)", c.name, c.want, got, body)
+		}
 	}
 }
