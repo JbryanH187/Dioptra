@@ -31,9 +31,9 @@ const (
 
 // AgentActivity resume un subagente o proceso en segundo plano activo/reciente (acotado, v4.9+).
 type AgentActivity struct {
-	Kind   string `json:"kind"`            // subagent | job
+	Kind   string `json:"kind"` // subagent | job
 	Name   string `json:"name"`
-	State  string `json:"state"`           // running | done | failed
+	State  string `json:"state"` // running | done | failed
 	Model  string `json:"model,omitempty"`
 	Detail string `json:"detail,omitempty"`
 }
