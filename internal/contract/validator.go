@@ -42,7 +42,7 @@ var allowedBlockKeys = map[string]map[string]bool{
 	"table":     {"t": true, "cols": true, "rows": true, "sort": true, "filter": true},
 	"section":   {"t": true, "title": true, "sev": true, "open": true, "blocks": true},
 	"code":      {"t": true, "lang": true, "src": true, "old": true, "ref": true, "hl": true, "tokens": true, "hunks": true, "degraded": true},
-	"diagram":   {"t": true, "kind": true, "nodes": true, "edges": true, "svg": true},
+	"diagram":   {"t": true, "kind": true, "nodes": true, "edges": true, "svg": true, "src": true, "direction": true},
 	"checklist": {"t": true, "items": true, "readonly": true},
 	"prose":     {"t": true, "title": true, "md": true, "degraded": true},
 	"canvas":    {"t": true, "html": true, "src": true, "h": true},
@@ -377,6 +377,16 @@ func NormalizeBlock(rawAny any, path string, depth int, warnings *[]Warning) []m
 
 	case "diagram":
 		kind, _ := asString(rawBlock["kind"])
+		if kind == "mermaid" {
+			srcStr, okS := asNonEmptyString(rawBlock["src"])
+			if !okS {
+				return []map[string]any{degradeBlock(rawBlock, path, "diagram", "diagrama mermaid sin src", warnings)}
+			}
+			if len(srcStr) > 64*1024 {
+				return []map[string]any{degradeBlock(rawBlock, path, "diagram", "diagrama mermaid excede 64 KB", warnings)}
+			}
+			return []map[string]any{{"t": "diagram", "kind": "mermaid", "src": srcStr}}
+		}
 		if kind != "flow" && kind != "seq" && kind != "tree" {
 			return []map[string]any{degradeBlock(rawBlock, path, "diagram", fmt.Sprintf("kind inválido %q", kind), warnings)}
 		}
@@ -456,6 +466,11 @@ func NormalizeBlock(rawAny any, path string, depth int, warnings *[]Warning) []m
 			"kind":  kind,
 			"nodes": cleanNodes,
 			"edges": cleanEdges,
+		}
+		if dirStr, ok := asNonEmptyString(rawBlock["direction"]); ok {
+			if dirStr == "right" || dirStr == "down" || dirStr == "left" || dirStr == "up" {
+				out["direction"] = dirStr
+			}
 		}
 		if svgStr != "" {
 			out["svg"] = svgStr

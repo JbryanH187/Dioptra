@@ -1,10 +1,13 @@
 package server
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"dioptra/internal/store"
 )
 
 func writeStatus(t *testing.T, dir, name, body string) {
@@ -37,5 +40,42 @@ func TestReadAgentSessions_OrdersFiltersAndMarksStale(t *testing.T) {
 	}
 	if !got[2].Stale || got[2].Session != "s-old" {
 		t.Fatalf("la sesión sin actualizar 30 min debe ir al final marcada stale: %+v", got[2])
+	}
+}
+
+func TestReadAgentSessions_EnrichesTitleAndWorkspace(t *testing.T) {
+	base := t.TempDir()
+	statusDir := filepath.Join(base, "agent-status")
+	sessDir := filepath.Join(base, "sessions")
+	if err := os.MkdirAll(statusDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(sessDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 11, 23, 12, 0, 0, 0, time.UTC)
+	writeStatus(t, statusDir, "one.json", `{"schema":"gentle-shell.agent-status/v1","agent":"genius-code","session":"abc-123","cwd":"C:/Dev/tsugi-backend","state":"idle","task":null,"updatedAt":"`+now.Add(-time.Minute).Format(time.RFC3339)+`"}`)
+	writeStatus(t, sessDir, "abc-123.json", `{"id":"abc-123","title":"Implementar catalogo de servicios"}`)
+
+	got := ReadAgentSessions([]string{statusDir}, now)
+	if len(got) != 1 {
+		t.Fatalf("esperaba 1 sesión, obtuvo %d", len(got))
+	}
+	if got[0].SessionTitle != "Implementar catalogo de servicios" {
+		t.Fatalf("esperaba SessionTitle leído de sessions/, obtuvo %q", got[0].SessionTitle)
+	}
+
+	st, err := store.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	if _, err := st.SetWorkspaceGroup(context.Background(), "tsugi-backend", "tsugi", "backend"); err != nil {
+		t.Fatal(err)
+	}
+	srv := New(Options{Store: st})
+	srv.enrichAgentSessions(context.Background(), got)
+	if got[0].CanonicalProject != "tsugi-backend" || got[0].ParentWorkspace != "tsugi" {
+		t.Fatalf("enriquecimiento de workspace inesperado: %+v", got[0])
 	}
 }

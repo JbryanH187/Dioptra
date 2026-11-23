@@ -105,6 +105,9 @@ export class DxReport extends HTMLElement {
     this._envelope = null;
     this._theme = 'dark';
     this._themeBtn = null;
+    this._canvasBtn = null;
+    this._hasCanvas = false;
+    this._canvasProject = '';
     this._lastResult = null;
     this._checkState = new Map();
     this._progressEl = null;
@@ -149,6 +152,14 @@ export class DxReport extends HTMLElement {
         'aria-label',
         isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'
       );
+    }
+  }
+
+  setCanvasAvailability(hasCanvas, project = '') {
+    this._hasCanvas = Boolean(hasCanvas);
+    this._canvasProject = String(project || '');
+    if (this._canvasBtn) {
+      this._canvasBtn.hidden = !this._hasCanvas;
     }
   }
 
@@ -207,6 +218,20 @@ export class DxReport extends HTMLElement {
         )
       );
     }
+    this._canvasBtn = el('button', {
+      type: 'button',
+      className: 'dx-ws-canvas-btn',
+      hidden: !this._hasCanvas,
+      title: 'Abrir lienzo interactivo del proyecto'
+    }, createUiIcon('layers', 14), el('span', null, 'Lienzo'));
+    this._canvasBtn.addEventListener('click', () => {
+      this.dispatchEvent(new CustomEvent('dx-open-canvas', {
+        bubbles: true,
+        composed: true,
+        detail: { project: this._canvasProject || report.project }
+      }));
+    });
+    actions.appendChild(this._canvasBtn);
     actions.appendChild(this._themeBtn);
 
     const isUpdated = Number(report.revision) > 1 && Boolean(report.updatedAt);

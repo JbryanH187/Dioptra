@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"dioptra/internal/roots"
 	"dioptra/internal/store"
 )
 
@@ -19,9 +20,11 @@ import (
 //	dioptra db backup  [--out ruta.db]          copia consistente (VACUUM INTO) + quick_check
 //	dioptra db reindex                          reconstruye reports_search (escritura)
 //	dioptra db alias   list|set <alias> <canónica>|remove <alias>
+//	dioptra db group   list|set <proyecto> <padre> [etiqueta]|remove <proyecto>
+//	dioptra db audit   [--json]                 detecta duplicados y sub-equipos sin modificar nada
 func runDB(args []string) error {
 	if len(args) == 0 {
-		return errors.New("uso: dioptra db <check|backup|reindex|alias> [opciones]")
+		return errors.New("uso: dioptra db <check|backup|reindex|alias|group|audit> [opciones]")
 	}
 	sub, rest := args[0], args[1:]
 	fs := flag.NewFlagSet("db "+sub, flag.ContinueOnError)
@@ -120,6 +123,80 @@ func runDB(args []string) error {
 			fmt.Println("Alias retirado:", ok)
 		default:
 			return fmt.Errorf("subcomando alias desconocido: %q", pos[0])
+		}
+	case "group":
+		pos := positional
+		if len(pos) == 0 {
+			pos = []string{"list"}
+		}
+		switch pos[0] {
+		case "list":
+			gs, err := st.ListWorkspaceGroups(ctx)
+			if err != nil {
+				return err
+			}
+			if len(gs) == 0 {
+				fmt.Println("Sin grupos de sub-equipos definidos.")
+			}
+			for _, g := range gs {
+				fmt.Printf("  %s → %s (%s)\n", g.ProjectKey, g.ParentKey, g.Label)
+			}
+		case "set":
+			if len(pos) < 3 || len(pos) > 4 {
+				return errors.New("uso: dioptra db group set <proyecto> <padre> [etiqueta]")
+			}
+			lbl := ""
+			if len(pos) == 4 {
+				lbl = pos[3]
+			}
+			g, err := st.SetWorkspaceGroup(ctx, pos[1], pos[2], lbl)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Sub-equipo agrupado: %s → %s (%s)\n", g.ProjectKey, g.ParentKey, g.Label)
+		case "remove":
+			if len(pos) != 2 {
+				return errors.New("uso: dioptra db group remove <proyecto>")
+			}
+			ok, err := st.RemoveWorkspaceGroup(ctx, pos[1])
+			if err != nil {
+				return err
+			}
+			fmt.Println("Sub-equipo desagrupado:", ok)
+		default:
+			return fmt.Errorf("subcomando group desconocido: %q", pos[0])
+		}
+	case "audit":
+		rootMap := map[string]string{}
+		if reg, err := roots.Load(st.BaseDir()); err == nil && reg != nil {
+			for _, e := range reg.List() {
+				rootMap[e.Project] = e.Path
+			}
+		}
+		res, err := st.AuditWorkspaces(ctx, rootMap)
+		if err != nil {
+			return err
+		}
+		if *asJSON {
+			return json.NewEncoder(os.Stdout).Encode(res)
+		}
+		fmt.Printf("Workspaces analizados: %d · duplicados sugeridos: %d · sub-equipos sugeridos: %d\n",
+			res.Projects, len(res.Duplicates), len(res.Subteams))
+		if len(res.Duplicates) > 0 {
+			fmt.Println("\nPosibles duplicados (usa `dioptra db alias set <alias> <canónica>`):")
+			for _, d := range res.Duplicates {
+				fmt.Printf("  • %s (%d) ↔ %s (%d) [%.0f%%] — %s · sugerido: %s\n",
+					d.A, d.AReports, d.B, d.BReports, d.Score*100, d.Reason, d.Suggestion)
+			}
+		}
+		if len(res.Subteams) > 0 {
+			fmt.Println("\nPosibles sub-equipos (usa `dioptra db group set <proyecto> <padre>`):")
+			for _, s := range res.Subteams {
+				fmt.Printf("  • %s (%d) → %s [%s] — %s\n", s.Project, s.Reports, s.Parent, s.Label, s.Reason)
+			}
+		}
+		if len(res.Duplicates) == 0 && len(res.Subteams) == 0 {
+			fmt.Println("Sin duplicados ni sub-equipos pendientes.")
 		}
 	default:
 		return fmt.Errorf("subcomando db desconocido: %q", sub)

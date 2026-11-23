@@ -66,6 +66,22 @@ func TestTask_DependenciasYRoles(t *testing.T) {
 	if r, err := NormalizeRole("QA"); err != nil || r != RoleTester {
 		t.Errorf("QA → tester: %s %v", r, err)
 	}
+	if r, err := NormalizeRole("UI/UX"); err != nil || r != RoleUX {
+		t.Errorf("UI/UX → ux: %s %v", r, err)
+	}
+	uxTask, err := NewTask("T4", "tsugi-ux", "Ajustar hero", "", "ux", "po", []string{"Contraste AA"}, nil, t0)
+	if err != nil || uxTask.Role != RoleUX {
+		t.Fatalf("NewTask ux: %v %+v", err, uxTask)
+	}
+	if err := uxTask.Claim("ux · genius", nil, t0); err != nil {
+		t.Fatalf("Claim ux: %v", err)
+	}
+	if err := uxTask.Move("ux · genius", Review, "", "Hero.dc.html:12 actualizado", "", t0); err != nil || uxTask.Role != RoleTester {
+		t.Fatalf("UX → Review debía pasar a Tester: %v %+v", err, uxTask)
+	}
+	if err := uxTask.Move("tester", Rejected, "", "", "Falta contraste en oscuro", t0); err != nil || uxTask.Role != RoleUX {
+		t.Fatalf("Rechazada de UX debía volver a UX: %v %+v", err, uxTask)
+	}
 	if _, err := NormalizeRole("arquitecto"); err == nil {
 		t.Error("rol inválido")
 	}

@@ -56,6 +56,13 @@ export class DxTimeline extends HTMLElement {
     this._activeId = '';
     this._query = '';
     this._filters = { project: '', tool: '', model: '' };
+    this._aliasMap = new Map();
+    this._parentMap = new Map();
+    this._subLabelMap = new Map();
+    this._displayMap = new Map();
+    this._canvasProjects = new Set();
+    this._sessionsEl = null;
+    this._filterBarEl = null;
     this._listEl = null;
     this._badgeEl = null;
     this._facetsEl = null;
@@ -221,8 +228,34 @@ export class DxTimeline extends HTMLElement {
     this.appendChild(searchBar);
     this.appendChild(this._filtersEl);
     // Sesiones abiertas de agentes (se oculta solo si no hay ninguna).
-    this.appendChild(document.createElement("dx-sessions"));
+    this._sessionsEl = document.createElement('dx-sessions');
+    this.appendChild(this._sessionsEl);
+    this._filterBarEl = el('div', { className: 'dx-session-filter-bar', hidden: true });
+    this.appendChild(this._filterBarEl);
     this.appendChild(this._listEl);
+
+    this.addEventListener('dx-focus-workspace', (e) => {
+      const targetRaw = e.detail?.project || '';
+      const key = this._canonicalKey(targetRaw);
+      if (!key) return;
+      const parent = e.detail?.parentWorkspace
+        ? this._canonicalKey(e.detail.parentWorkspace)
+        : (this._parentMap.get(key) || '');
+      if (this._filters.project === key) {
+        this._filters.project = '';
+      } else {
+        this._filters.project = key;
+        this._closedGroups.delete(key);
+        if (parent) this._closedGroups.delete(parent);
+      }
+      this._sessionsEl?.setActiveProject?.(this._filters.project);
+      this._renderList();
+      this.dispatchEvent(new CustomEvent('dx-filter-change', {
+        bubbles: true,
+        composed: true,
+        detail: { ...this._filters }
+      }));
+    });
   }
 
   _emitToggle() {
@@ -395,9 +428,48 @@ export class DxTimeline extends HTMLElement {
       .replace(/^-+|-+$/g, '');
   }
 
+  // Metadatos de /api/projects: aliases, jerarquía padre → sub-equipos y lienzos opt-in.
+  setWorkspaceMeta(projects) {
+    this._aliasMap.clear();
+    this._parentMap.clear();
+    this._subLabelMap.clear();
+    this._displayMap.clear();
+    this._canvasProjects.clear();
+    for (const p of Array.isArray(projects) ? projects : []) {
+      if (!p || !p.key) continue;
+      const canon = DxTimeline.projectKey(p.key);
+      if (!canon) continue;
+      if (p.name) this._displayMap.set(canon, p.name);
+      if (Array.isArray(p.aliases)) {
+        for (const a of p.aliases) {
+          const ak = DxTimeline.projectKey(a);
+          if (ak) this._aliasMap.set(ak, canon);
+        }
+      }
+      if (p.parentKey) {
+        const pk = DxTimeline.projectKey(p.parentKey);
+        if (pk && pk !== canon) {
+          this._parentMap.set(canon, pk);
+          this._subLabelMap.set(canon, p.subLabel || canon.replace(new RegExp(`^${pk}-`), '') || p.name || canon);
+        }
+      }
+      if (p.hasCanvas) this._canvasProjects.add(canon);
+    }
+    this._scheduleRender();
+  }
+
+  _canonicalKey(name) {
+    const raw = DxTimeline.projectKey(name || 'dioptra');
+    return this._aliasMap.get(raw) || raw;
+  }
+
   _matches(it, skip = '') {
     const f = this._filters;
-    if (skip !== 'project' && f.project && DxTimeline.projectKey(it.project || 'dioptra') !== f.project) return false;
+    if (skip !== 'project' && f.project) {
+      const ck = this._canonicalKey(it.project || 'dioptra');
+      const pk = this._parentMap.get(ck) || '';
+      if (ck !== f.project && pk !== f.project) return false;
+    }
     if (skip !== 'tool' && f.tool && String(it.tool ?? '').toLowerCase() !== f.tool.toLowerCase()) return false;
     if (skip !== 'model' && f.model && String(it.model ?? '').toLowerCase() !== f.model.toLowerCase()) return false;
     return true;
@@ -474,13 +546,39 @@ export class DxTimeline extends HTMLElement {
 
   // Resumen bajo la marca ("6 reportes · 3 workspaces") e indicador de filtros.
   _renderSpaces() {
-    const spaces = new Set(this._items.map((it) => DxTimeline.projectKey(it.project || 'dioptra')));
+    const spaces = new Set(this._items.map((it) => {
+      const ck = this._canonicalKey(it.project || 'dioptra');
+      return this._parentMap.get(ck) || ck;
+    }));
     if (this._brandMetaEl) {
       this._brandMetaEl.textContent = `reportes · ${spaces.size} ${spaces.size === 1 ? 'workspace' : 'workspaces'}`;
     }
     if (this._filtersSummaryEl) {
       const active = [this._filters.tool, this._filters.model].filter(Boolean);
       this._filtersSummaryEl.textContent = active.length ? active.join(' · ') : '';
+    }
+    this._sessionsEl?.setActiveProject?.(this._filters.project);
+    if (this._filterBarEl) {
+      clearNode(this._filterBarEl);
+      if (!this._filters.project) {
+        this._filterBarEl.hidden = true;
+      } else {
+        this._filterBarEl.hidden = false;
+        const label = this._displayMap.get(this._filters.project) || this._filters.project;
+        const clearBtn = el('button', {
+          type: 'button',
+          className: 'dx-session-filter-clear',
+          'aria-label': `Quitar filtro ${label}`,
+          title: 'Mostrar todos los workspaces'
+        }, createUiIcon('close', 12));
+        clearBtn.addEventListener('click', () => {
+          this._filters.project = '';
+          this._sessionsEl?.setActiveProject?.('');
+          this._renderList();
+        });
+        this._filterBarEl.appendChild(el('span', { className: 'dx-session-filter-text' }, `Workspace: ${label}`));
+        this._filterBarEl.appendChild(clearBtn);
+      }
     }
   }
 
@@ -603,20 +701,53 @@ export class DxTimeline extends HTMLElement {
       ? new Date(this._items[0].ts)
       : new Date();
 
-    // Agrupa por workspace (proyecto). filtered ya viene ordenado por actividad
-    // reciente, así que el Map conserva ese orden: el workspace más activo va arriba.
-    const groups = new Map();
+    // Agrupa por workspace raíz (resolviendo aliases y anidando sub-equipos).
+    // filtered ya viene ordenado por actividad reciente: el Map conserva ese orden.
+    const roots = new Map();
+    const ensureRoot = (rootKey, fallbackName) => {
+      let r = roots.get(rootKey);
+      if (!r) {
+        r = {
+          key: rootKey,
+          name: this._displayMap.get(rootKey) || fallbackName || rootKey,
+          items: [],
+          subteams: new Map(),
+          total: 0
+        };
+        roots.set(rootKey, r);
+      }
+      return r;
+    };
+
     for (const item of filtered) {
-      const key = DxTimeline.projectKey(item.project || 'dioptra');
-      const g = groups.get(key) || { key, name: item.project || 'dioptra', items: [] };
-      g.items.push(item);
-      groups.set(key, g);
+      const ck = this._canonicalKey(item.project || 'dioptra');
+      const parentKey = this._parentMap.get(ck) || '';
+      if (parentKey) {
+        const root = ensureRoot(parentKey, parentKey);
+        let sub = root.subteams.get(ck);
+        if (!sub) {
+          sub = {
+            key: ck,
+            label: this._subLabelMap.get(ck) || item.project || ck,
+            name: this._displayMap.get(ck) || item.project || ck,
+            items: []
+          };
+          root.subteams.set(ck, sub);
+        }
+        sub.items.push(item);
+        root.total += 1;
+      } else {
+        const root = ensureRoot(ck, item.project || 'dioptra');
+        root.items.push(item);
+        root.total += 1;
+      }
     }
 
-    const searching = Boolean(this._query);
-    for (const g of groups.values()) {
-      const hasActive = g.items.some((it) => it.id === this._activeId);
-      // Al buscar se abren todos los grupos para mostrar cada coincidencia.
+    const searching = Boolean(this._query) || Boolean(this._filters.project);
+    for (const g of roots.values()) {
+      const hasActiveInDirect = g.items.some((it) => it.id === this._activeId);
+      const hasActiveInSub = [...g.subteams.values()].some((sub) => sub.items.some((it) => it.id === this._activeId));
+      const hasActive = hasActiveInDirect || hasActiveInSub;
       const open = searching || !this._closedGroups.has(g.key);
       const bodyId = `dx-ws-${g.key.replace(/[^a-z0-9_-]/gi, '-')}`;
       const head = el(
@@ -631,15 +762,62 @@ export class DxTimeline extends HTMLElement {
         },
         createUiIcon('chevron', 12),
         el('span', { className: 'dx-ws-name' }, renderHighlightedText(g.name, this._query, 'dx-timeline-mark')),
-        el('span', { className: 'dx-ws-count' }, String(g.items.length))
+        el('span', { className: 'dx-ws-count' }, String(g.total))
       );
       head.addEventListener('click', () => this._toggleGroup(g.key));
+
+      const hasCanvas = this._canvasProjects.has(g.key) || [...g.subteams.keys()].some((sk) => this._canvasProjects.has(sk));
+      let headRow = head;
+      if (hasCanvas) {
+        const canvasBtn = el('button', {
+          type: 'button',
+          className: 'dx-ws-canvas-btn',
+          title: `Abrir lienzo de ${g.name}`,
+          'aria-label': `Abrir lienzo de ${g.name}`
+        }, createUiIcon('layers', 13), el('span', null, 'Lienzo'));
+        canvasBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.dispatchEvent(new CustomEvent('dx-open-canvas', {
+            bubbles: true,
+            composed: true,
+            detail: { project: g.key, name: g.name }
+          }));
+        });
+        headRow = el('div', { className: 'dx-ws-head-row' }, head, canvasBtn);
+      }
 
       const body = el('div', { className: 'dx-ws-body', id: bodyId, role: 'group', 'aria-label': g.name });
       if (!open) body.hidden = true;
       for (const item of g.items) body.appendChild(this._renderItem(item, newestDate));
 
-      this._listEl.appendChild(el('section', { className: 'dx-ws', dataset: { open: open ? 'true' : 'false' } }, head, body));
+      for (const sub of g.subteams.values()) {
+        const subHasActive = sub.items.some((it) => it.id === this._activeId);
+        const subOpen = searching || !this._closedGroups.has(sub.key);
+        const subBodyId = `dx-subws-${sub.key.replace(/[^a-z0-9_-]/gi, '-')}`;
+        const subHead = el(
+          'button',
+          {
+            type: 'button',
+            className: 'dx-subws-head',
+            'aria-expanded': subOpen ? 'true' : 'false',
+            'aria-controls': subBodyId,
+            title: sub.name,
+            dataset: { active: subHasActive ? 'true' : 'false' }
+          },
+          createUiIcon('chevron', 11),
+          el('span', { className: 'dx-subws-name' }, renderHighlightedText(sub.label, this._query, 'dx-timeline-mark')),
+          el('span', { className: 'dx-ws-count' }, String(sub.items.length))
+        );
+        subHead.addEventListener('click', () => this._toggleGroup(sub.key));
+
+        const subBody = el('div', { className: 'dx-subws-body', id: subBodyId, role: 'group', 'aria-label': sub.name });
+        if (!subOpen) subBody.hidden = true;
+        for (const item of sub.items) subBody.appendChild(this._renderItem(item, newestDate));
+
+        body.appendChild(el('div', { className: 'dx-subws', dataset: { open: subOpen ? 'true' : 'false' } }, subHead, subBody));
+      }
+
+      this._listEl.appendChild(el('section', { className: 'dx-ws', dataset: { open: open ? 'true' : 'false' } }, headRow, body));
     }
   }
 

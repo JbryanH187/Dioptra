@@ -64,6 +64,53 @@ var schemaMigrations = []schemaMigration{
 			);`)
 		return err
 	}},
+	{6, "tablas workspace_groups y workspace_audit_ignores (jerarquía de workspaces y sync)", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			CREATE TABLE IF NOT EXISTS workspace_groups (
+				project_key TEXT PRIMARY KEY,
+				parent_key  TEXT NOT NULL,
+				label       TEXT NOT NULL DEFAULT '',
+				created_at  TEXT NOT NULL
+			);
+			CREATE INDEX IF NOT EXISTS idx_workspace_groups_parent ON workspace_groups(parent_key);
+			CREATE TABLE IF NOT EXISTS workspace_audit_ignores (
+				pair_key   TEXT PRIMARY KEY,
+				created_at TEXT NOT NULL
+			);`)
+		return err
+	}},
+	{7, "tablas design_canvases y canvas_annotations (lienzos multipantalla opt-in y comentarios)", func(tx *sql.Tx) error {
+		_, err := tx.Exec(`
+			CREATE TABLE IF NOT EXISTS design_canvases (
+				project_key TEXT NOT NULL,
+				canvas_id   TEXT NOT NULL,
+				title       TEXT NOT NULL,
+				dir_path    TEXT NOT NULL,
+				entry_json  TEXT NOT NULL DEFAULT 'project/canvas.json',
+				updated_at  TEXT NOT NULL,
+				PRIMARY KEY (project_key, canvas_id)
+			);
+			CREATE TABLE IF NOT EXISTS canvas_annotations (
+				id              TEXT PRIMARY KEY,
+				project_key     TEXT NOT NULL,
+				canvas_id       TEXT NOT NULL,
+				page_id         TEXT NOT NULL DEFAULT '',
+				board_file      TEXT NOT NULL,
+				kind            TEXT NOT NULL,
+				geometry_json   TEXT NOT NULL,
+				target_selector TEXT NOT NULL DEFAULT '',
+				target_text     TEXT NOT NULL DEFAULT '',
+				comment         TEXT NOT NULL,
+				author          TEXT NOT NULL DEFAULT 'usuario',
+				status          TEXT NOT NULL DEFAULT 'open',
+				resolution_note TEXT NOT NULL DEFAULT '',
+				created_at      TEXT NOT NULL,
+				updated_at      TEXT NOT NULL
+			);
+			CREATE INDEX IF NOT EXISTS idx_canvas_ann_lookup
+				ON canvas_annotations(project_key, canvas_id, status);`)
+		return err
+	}},
 }
 
 // LatestSchemaVersion es la versión de esquema que deja Open tras migrar.

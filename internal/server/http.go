@@ -206,6 +206,8 @@ func (s *AppServer) registerRoutes() {
 	s.mux.HandleFunc("GET /api/stats", s.handleCostStats)
 	s.mux.HandleFunc("GET /api/projects", s.handleListProjects)
 	s.mux.HandleFunc("GET /api/sessions", s.handleListSessions)
+	s.registerWorkspaceRoutes()
+	s.registerCanvasRoutes()
 	s.registerE2ERoutes()
 	s.registerBoardRoutes()
 	s.mux.HandleFunc("GET /api/reports/{id}", s.handleGetReport)

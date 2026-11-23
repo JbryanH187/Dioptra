@@ -26,10 +26,10 @@ type BoardTaskInput struct {
 	Title     string   `json:"title,omitempty" jsonschema:"create: short title"`
 	Detail    string   `json:"detail,omitempty" jsonschema:"create: what to do"`
 	Criteria  []string `json:"criteria,omitempty" jsonschema:"create: acceptance criteria (verifiable)"`
-	Role      string   `json:"role,omitempty" jsonschema:"create: dev | tester | po (default dev)"`
+	Role      string   `json:"role,omitempty" jsonschema:"create: dev | tester | po | ux (default dev)"`
 	DependsOn []string `json:"depends_on,omitempty" jsonschema:"create: task ids that must be done first"`
-	By        string   `json:"by,omitempty" jsonschema:"Who acts, signed with your role: 'dev · genius', 'tester · claude', 'moderador · genius'"`
-	AsRole    string   `json:"as_role,omitempty" jsonschema:"Your role (dev | tester | po | moderador) if by does not start with it. You may only claim and move tasks of your role"`
+	By        string   `json:"by,omitempty" jsonschema:"Who acts, signed with your role: 'dev · genius', 'ux · genius', 'tester · claude', 'moderador · genius'"`
+	AsRole    string   `json:"as_role,omitempty" jsonschema:"Your role (dev | tester | po | ux | moderador) if by does not start with it. You may only claim and move tasks of your role"`
 	To        string   `json:"to,omitempty" jsonschema:"move: en_curso | en_revision | hecha | rechazada | pendiente"`
 	NextRole  string   `json:"next_role,omitempty" jsonschema:"move: role that picks it up next (default: dev→tester on review, back to dev on reject)"`
 	Evidence  string   `json:"evidence,omitempty" jsonschema:"move to en_revision/hecha: test command and result, report url, file:line"`

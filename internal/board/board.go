@@ -26,11 +26,12 @@ const (
 	RoleDev    = "dev"
 	RoleTester = "tester"
 	RolePO     = "po"
+	RoleUX     = "ux"
 	// RoleUser es la persona: la última aprobación en modo manual. Solo actúa desde el visor.
 	RoleUser = "usuario"
 )
 
-var validRoles = map[string]bool{RoleDev: true, RoleTester: true, RolePO: true, RoleUser: true}
+var validRoles = map[string]bool{RoleDev: true, RoleTester: true, RolePO: true, RoleUX: true, RoleUser: true}
 
 // TimeLayout: UTC con microsegundos y ancho fijo, para que el orden por texto sea el
 // orden real aunque varios eventos caigan en el mismo segundo.
@@ -158,11 +159,13 @@ func NormalizeRole(r string) (string, error) {
 		r = RoleTester
 	case "product owner", "product-owner", "productowner":
 		r = RolePO
+	case "ux", "ui", "ui/ux", "ui-ux", "design", "diseno", "diseño", "designer", "diseñador":
+		r = RoleUX
 	case "user", "humano", "persona":
 		r = RoleUser
 	}
 	if !validRoles[r] {
-		return "", fmt.Errorf("rol %q no válido (usa dev, tester o po)", r)
+		return "", fmt.Errorf("rol %q no válido (usa dev, tester, po o ux)", r)
 	}
 	return r, nil
 }
@@ -299,10 +302,14 @@ func (t *Task) Move(by, to, nextRole, evidence, reason string, now time.Time) er
 			return err
 		}
 		t.Role = r
-	} else if to == Review && t.Role == RoleDev {
-		t.Role = RoleTester // por defecto, lo que entrega Dev lo revisa Tester
+	} else if to == Review && (t.Role == RoleDev || t.Role == RoleUX) {
+		t.Role = RoleTester // por defecto, lo que entrega Dev o UX lo revisa Tester
 	} else if to == Rejected {
-		t.Role = RoleDev // por defecto, lo rechazado vuelve a Dev
+		if RoleOf(t.submitter()) == RoleUX {
+			t.Role = RoleUX
+		} else {
+			t.Role = RoleDev // por defecto, lo rechazado vuelve a Dev
+		}
 	}
 	if evidence != "" {
 		t.Evidence = strings.TrimSpace(evidence)

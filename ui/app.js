@@ -222,13 +222,27 @@ async function syncReportsFromServer({ autoOpenNew = true } = {}) {
   return syncInFlight;
 }
 
+async function loadWorkspaceMeta() {
+  if (!app) return;
+  try {
+    const payload = await fetchJSONNoStore('/api/projects');
+    const projects = extractItemsArray(payload);
+    app.setWorkspaceMeta?.(projects);
+  } catch {
+    // Sin servidor o en offline: el timeline sigue funcionando por nombre crudo.
+  }
+}
+
 // Carga inicial aislada: reinvocable desde el «Reintentar» del timeline sin
 // duplicar listeners ni la suscripción en vivo (que viven en bootstrap()).
 async function loadReports() {
   let listReady = false;
   try {
     app.setTimelineState?.('loading');
-    const payload = await fetchJSONNoStore('/api/reports');
+    const [payload] = await Promise.all([
+      fetchJSONNoStore('/api/reports'),
+      loadWorkspaceMeta()
+    ]);
     const items = extractItemsArray(payload);
     app.setTimelineState?.('ready');
     listReady = true;
@@ -258,10 +272,25 @@ async function loadReports() {
   }
 }
 
+function getRequestedCanvasParams() {
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    const canvas = sp.get('canvas') || '';
+    const project = sp.get('project') || '';
+    return canvas ? { project, canvas } : null;
+  } catch {
+    return null;
+  }
+}
+
 async function bootstrap() {
   if (!app) return;
 
   await loadReports();
+  const reqCanvas = getRequestedCanvasParams();
+  if (reqCanvas && reqCanvas.project) {
+    app.openDesignCanvas?.(reqCanvas.project, reqCanvas.canvas);
+  }
 
   // Selección manual desde <dx-timeline>
   app.addEventListener('dx-select-report', async (e) => {
@@ -362,6 +391,37 @@ function startLocalSSEStream() {
       }
     });
 
+    stream.addEventListener('workspaces_updated', async (ev) => {
+      try {
+        const data = JSON.parse(ev.data || '{}');
+        liveChannel?.postMessage({ type: 'workspaces_updated', summary: data?.summary || '' });
+        await loadWorkspaceMeta();
+        if (data?.summary) app.notifyToast('Workspaces actualizados:', data.summary);
+      } catch {
+        void loadWorkspaceMeta();
+      }
+    });
+
+    stream.addEventListener('canvas_updated', (ev) => {
+      try {
+        const data = JSON.parse(ev.data || '{}');
+        liveChannel?.postMessage({ type: 'canvas_updated', detail: data });
+        app.notifyCanvasSSE?.('canvas_updated', data);
+      } catch {
+        // noop
+      }
+    });
+
+    stream.addEventListener('canvas_annotations_updated', (ev) => {
+      try {
+        const data = JSON.parse(ev.data || '{}');
+        liveChannel?.postMessage({ type: 'canvas_annotations_updated', detail: data });
+        app.notifyCanvasSSE?.('canvas_annotations_updated', data);
+      } catch {
+        // noop
+      }
+    });
+
     stream.addEventListener('error', () => {
       sseHealthy = false;
       if (closed) return;
@@ -399,7 +459,13 @@ function connectLiveUpdates() {
         } else if (msg.type === 'report_updated' && msg.summary?.id) {
           await handleUpdatedSummary(msg.summary, msg.source);
         } else if (msg.type === 'sse_reconnected') {
-          await syncReportsFromServer({ autoOpenNew: true });
+          await Promise.all([loadWorkspaceMeta(), syncReportsFromServer({ autoOpenNew: true })]);
+        } else if (msg.type === 'workspaces_updated') {
+          await loadWorkspaceMeta();
+        } else if (msg.type === 'canvas_updated') {
+          app.notifyCanvasSSE?.('canvas_updated', msg.detail);
+        } else if (msg.type === 'canvas_annotations_updated') {
+          app.notifyCanvasSSE?.('canvas_annotations_updated', msg.detail);
         }
       } catch (err) {
         console.warn('Dioptra: error procesando mensaje multi-pestaña:', err);
