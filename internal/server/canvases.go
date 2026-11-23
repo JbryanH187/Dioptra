@@ -21,11 +21,12 @@ import (
 )
 
 const (
-	// DesignCanvasCSP aísla las pantallas de un lienzo multipantalla: permite scripts/estilos
-	// propios del bundle local, pero bloquea cualquier llamada de red (connect-src 'none')
-	// y el montaje en orígenes ajenos (frame-ancestors 'self'). Además, la UI monta cada
-	// pantalla en <iframe sandbox="allow-scripts"> (origen opaco null).
-	DesignCanvasCSP = "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'none'; frame-ancestors 'self'"
+	// DesignCanvasCSP aísla las pantallas de un lienzo multipantalla: permite scripts
+	// propios del bundle local y tipografías web de Google Fonts (solo lectura visual),
+	// pero bloquea scripts externos, llamadas de red (connect-src 'none') y montaje en
+	// orígenes ajenos (frame-ancestors 'self'). La UI además monta cada pantalla en
+	// <iframe sandbox="allow-scripts"> (origen opaco null).
+	DesignCanvasCSP = "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com data:; connect-src 'none'; frame-ancestors 'self'"
 
 	designCanvasMaxFileBytes = 8 << 20 // 8 MiB por archivo estático del lienzo
 )

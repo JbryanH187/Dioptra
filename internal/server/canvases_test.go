@@ -68,6 +68,9 @@ func TestDesignCanvasHTTP_SecurityAndMCPFlow(t *testing.T) {
 	if gotCSP := rec.Header().Get("Content-Security-Policy"); gotCSP != DesignCanvasCSP {
 		t.Fatalf("CSP inesperada: %q", gotCSP)
 	}
+	if !strings.Contains(DesignCanvasCSP, "https://fonts.googleapis.com") || !strings.Contains(DesignCanvasCSP, "https://fonts.gstatic.com") || !strings.Contains(DesignCanvasCSP, "connect-src 'none'") {
+		t.Fatalf("DesignCanvasCSP debe permitir Google Fonts y mantener connect-src 'none': %q", DesignCanvasCSP)
+	}
 	if !strings.Contains(rec.Body.String(), "dxProbePoint") {
 		t.Fatalf("faltó sonda de solo lectura dxProbePoint en respuesta HTML")
 	}
