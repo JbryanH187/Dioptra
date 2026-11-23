@@ -24,7 +24,7 @@ Dioptra converts plain GitHub Markdown into interactive blocks. Write good Markd
    `> [!WARNING] Reembolso sin validar monto` followed by `> detail with internal/refunds/handler.go:57`.
    Tags: NOTE, TIP, IMPORTANT (warning), WARNING, CAUTION/ERROR (error).
 6. Comparisons as tables. Put units in headers (`Latencia p95 (ms)`), plain numbers in cells, `file:line` in its own column. These become sortable typed columns.
-7. Flows as mermaid (`flowchart LR` or `sequenceDiagram`). Use simple nodes `A[Label]`, edges `-->|label|`, `subgraph`. Unsupported syntax (`Note`, `loop`, `classDiagram`) is kept as code, never half-drawn.
+7. Flows as mermaid (`flowchart`, `sequenceDiagram`, `stateDiagram-v2`, `erDiagram`, `classDiagram`, `gantt`, `pie`, etc.): common Mermaid types (including `&` chains, nested subgraphs, and `Note`/`alt`/`loop`) compile to native D2/SVG; exotic Mermaid types render automatically via Dioptra's local lazy renderer (never stuck as raw text). Simple ASCII box-and-arrow diagrams also upgrade to SVG.
 8. Code and diffs complete in fences with the right language. Use `diff` for patches.
 9. Long logs, traces and appendices inside `<details><summary>Title</summary> ... </details>`.
 10. `## Próximos pasos` as a task list: `- [ ] Acción concreta @dueño [warning]`. The user approves items in the browser; call `get_report_state` before acting on them.

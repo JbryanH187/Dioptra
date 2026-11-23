@@ -1,9 +1,9 @@
 ---
 name: trabajo-en-equipo
-description: Work as one role of an agent team (dev, tester, po or moderador) coordinated through the Dioptra team board instead of chatting with other agents. Use when the user assigns you a role ("eres el tester", "/team dev"), when several terminals or agents work on the same project, or when the user asks for a Dev · Tester · PO workflow. Requires the Dioptra MCP server (tools board_list, board_task).
+description: Work as one role of an agent team (dev, ux, tester, po or moderador) coordinated through the Dioptra team board instead of chatting with other agents. Use when the user assigns you a role ("eres el tester", "eres ux", "/team dev"), when several terminals or agents work on the same project, or when the user asks for a Dev · UX · Tester · PO workflow. Requires the Dioptra MCP server (tools board_list, board_task).
 ---
 
-# Trabajo en equipo (Dev · Tester · PO)
+# Trabajo en equipo (Dev · UX · Tester · PO)
 
 Several agents, each with its own context, work on the same project. **You do not talk to the other agents.** You coordinate through the **Dioptra board**: you take tasks for your role and move them with evidence, and the next role picks them up. This saves tokens and keeps each agent's context clean.
 
@@ -28,6 +28,10 @@ Several agents, each with its own context, work on the same project. **You do no
 - Implements the task, following the repository's rules: `.genius/policy.json`, tests, the completion gate.
 - `to: "en_revision"` with evidence: the test command and its result, the files changed and the commit if one exists. The task goes to **Tester** automatically.
 - If it comes back rejected, read the `reason` first, reproduce the failure, fix it, and return the task to review.
+
+**UX**
+- Designs and iterates screens, tokens, cognitive load and multi-screen HTML canvases (`arquitectura-lienzo-ux` + `dioptra-design-canvas`), signing as `ux · <agent>`.
+- `to: "en_revision"` with evidence: canvas URL / updated `.dc.html` files, contrast/cognitive audit results and resolved annotations. Goes to **Tester** automatically; if rejected, returns to **UX**.
 
 **Tester**
 - Takes tasks in review (`claim`).

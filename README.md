@@ -126,7 +126,9 @@ dioptra roots list|set <project> <path>|remove <project> # Authorized source roo
 ## Bundled Agent Skills & Integrations
 
 - [`integrations/skills/dioptra-report-writer/SKILL.md`](./integrations/skills/dioptra-report-writer/SKILL.md) — Concise publishing conventions and examples.
-- [`integrations/skills/trabajo-en-equipo/SKILL.md`](./integrations/skills/trabajo-en-equipo/SKILL.md) — Multi-role `dev` / `tester` / `po` / `moderador` coordination protocol.
+- [`integrations/skills/dioptra-design-canvas/SKILL.md`](./integrations/skills/dioptra-design-canvas/SKILL.md) — Protocol for opt-in multi-screen design canvases (`canvas_register`, `canvas_get_feedback`, `canvas_resolve_feedback`).
+- [`integrations/skills/arquitectura-lienzo-ux/SKILL.md`](./integrations/skills/arquitectura-lienzo-ux/SKILL.md) — Style-agnostic structural blueprint for product design canvases (Foundations → Mobile → Staff → Tablet/Desktop, `v1`/`v2`/`v3` pages, spacing math).
+- [`integrations/skills/trabajo-en-equipo/SKILL.md`](./integrations/skills/trabajo-en-equipo/SKILL.md) — Multi-role `dev` / `ux` / `tester` / `po` / `moderador` coordination protocol.
 - [`integrations/skills/observador-e2e/SKILL.md`](./integrations/skills/observador-e2e/SKILL.md) — Manual E2E test observation & log-quality audit rubric.
 - [`integrations/gentle-shell/`](./integrations/gentle-shell/) — Ready-to-drop extension (`dioptra-goal-close.ts`) for Gentle Shell / Pi.
 
