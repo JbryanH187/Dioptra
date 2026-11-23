@@ -53,7 +53,14 @@ func Markdown(project string, tasks []*Task, alerts ...Alert) string {
 	writeConversation(&b, tasks, open)
 
 	b.WriteString("## Carga por rol\n\n| Rol | Pendientes | En curso | En revisión | Rechazadas |\n|---|---|---|---|---|\n")
-	for _, r := range []string{RoleDev, RoleTester, RolePO} {
+	rolesToShow := []string{RoleDev, RoleTester, RolePO}
+	for _, t := range tasks {
+		if t.Role == RoleUX {
+			rolesToShow = append(rolesToShow, RoleUX)
+			break
+		}
+	}
+	for _, r := range rolesToShow {
 		count := func(s string) int {
 			n := 0
 			for _, t := range by[s] {
@@ -305,6 +312,8 @@ func roleLabel(r string) string {
 		return "Tester"
 	case RolePO:
 		return "PO"
+	case RoleUX:
+		return "UX"
 	}
 	return r
 }

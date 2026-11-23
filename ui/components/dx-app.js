@@ -193,6 +193,64 @@ export class DxApp extends HTMLElement {
     this._timelineEl?.setState?.(kind, opts);
   }
 
+  // Metadatos de workspaces (aliases, jerarquía padre→sub-equipos, lienzos opt-in).
+  setWorkspaceMeta(projects) {
+    this._workspaceMeta = Array.isArray(projects) ? projects : [];
+    this._timelineEl?.setWorkspaceMeta?.(this._workspaceMeta);
+    this._syncReportCanvasButton();
+  }
+
+  _projectHasCanvas(projectName) {
+    if (!projectName || !Array.isArray(this._workspaceMeta)) return { has: false, target: '' };
+    const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const key = norm(projectName);
+    const byKey = new Map();
+    const aliasToCanon = new Map();
+    for (const p of this._workspaceMeta) {
+      if (!p?.key) continue;
+      byKey.set(norm(p.key), p);
+      for (const a of p.aliases || []) aliasToCanon.set(norm(a), norm(p.key));
+    }
+    const canon = aliasToCanon.get(key) || key;
+    const entry = byKey.get(canon);
+    if (entry?.hasCanvas) return { has: true, target: entry.key };
+    if (entry?.parentKey) {
+      const parent = byKey.get(norm(entry.parentKey));
+      if (parent?.hasCanvas) return { has: true, target: parent.key };
+    }
+    return { has: false, target: '' };
+  }
+
+  _syncReportCanvasButton() {
+    if (!this._reportEl) return;
+    const info = this._projectHasCanvas(this._activeProject());
+    this._reportEl.setCanvasAvailability?.(info.has, info.target);
+  }
+
+  _ensureDesignCanvas() {
+    if (this._designCanvasEl?.isConnected) return this._designCanvasEl;
+    let dc = document.body.querySelector(':scope > dx-design-canvas');
+    if (!dc) {
+      dc = document.createElement('dx-design-canvas');
+      document.body.appendChild(dc);
+    }
+    this._designCanvasEl = dc;
+    return dc;
+  }
+
+  openDesignCanvas(project, canvasId = '') {
+    const dc = this._ensureDesignCanvas();
+    if (dc && typeof dc.open === 'function') {
+      void dc.open({ project: project || this._activeProject(), canvasId });
+    }
+  }
+
+  notifyCanvasSSE(eventName, detail) {
+    if (this._designCanvasEl && typeof this._designCanvasEl.handleSSE === 'function') {
+      void this._designCanvasEl.handleSSE(eventName, detail);
+    }
+  }
+
   _toggleSidebar() {
     if (this._isDrawerMode()) {
       this._setDrawerOpen(this._shellEl?.dataset.drawerOpen !== 'true');
@@ -375,6 +433,7 @@ export class DxApp extends HTMLElement {
     }
     const prevScroll = preserveScroll && this._reportEl ? this._reportEl.scrollTop : 0;
     this._reportEl.envelope = envelope;
+    this._syncReportCanvasButton();
     if (preserveScroll && this._reportEl) {
       this._reportEl.scrollTop = prevScroll;
     }
@@ -512,6 +571,12 @@ export class DxApp extends HTMLElement {
 
     this.addEventListener('dx-request-theme-toggle', () => {
       this.toggleTheme(this.querySelector('.dx-theme-btn'));
+    });
+
+    this.addEventListener('dx-open-canvas', (e) => {
+      const project = e.detail?.project || this._activeProject();
+      const canvasId = e.detail?.canvasId || '';
+      if (project) this.openDesignCanvas(project, canvasId);
     });
 
   }

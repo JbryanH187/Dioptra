@@ -67,11 +67,13 @@ How: publish_report {title, project: <repo root folder name>, tool, model, markd
 - tables -> sortable tables (numeric, severity and file:line columns are detected)
 - "> [!WARNING] Title" (NOTE, TIP, IMPORTANT, CAUTION, ERROR) -> severity callout
 - "- [ ] task @owner [warning]" -> checklist the user can approve; read approvals with get_report_state before acting
-- mermaid flowchart/sequenceDiagram fences -> diagrams; a "kpi" fence with lines "Label | value | unit | delta | sev" -> KPI cards; "diff" fences -> highlighted diffs
+- mermaid fences (flowchart, sequenceDiagram, stateDiagram, erDiagram, classDiagram, etc.) -> diagrams; a "kpi" fence with lines "Label | value | unit | delta | sev" -> KPI cards; "diff" fences -> highlighted diffs
 - "<details><summary>Title</summary> ... </details>" -> collapsed section; file:line references become clickable
 
 Updating: send the same id or idempotency_key plus change_note; never publish duplicates.
-Team board: when agents work as roles (dev, tester, po), coordinate through board_list / board_task instead of chatting.
+Workspaces sync: when the user asks to sync/deduplicate Dioptra workspaces, call workspace_audit, ask the user which duplicates to merge or sub-teams to group, then apply confirmed choices with workspace_organize.
+Design canvases (opt-in): use canvas_register to expose a local multi-screen UI/UX canvas in Dioptra, canvas_get_feedback to read human pin/box/highlight comments, and canvas_resolve_feedback after applying changes.
+Team board: when agents work as roles (dev, tester, po, ux), coordinate through board_list / board_task instead of chatting.
 E2E observation: when the user is about to test a flow end to end, offer to document it with e2e_start / e2e_record / e2e_ingest_har / e2e_finish (live report by test case, services, logs and log-quality gaps).
 After publishing: give the user a 3-5 line summary, the url and cost.consoleLine.
 Custom layouts (blocks_override, free-canvas) are optional: call get_layout_contract first.`
@@ -267,6 +269,14 @@ func NewMCPServer(backend Backend) *mcp.Server {
 	// Tablero de equipo (dev · tester · po).
 	if bb, ok := backend.(BoardBackend); ok {
 		registerBoardTools(srv, bb, readOnly, notDestructive)
+	}
+	// Auditoría y organización de workspaces (duplicados y sub-equipos).
+	if wb, ok := backend.(WorkspaceBackend); ok {
+		registerWorkspaceTools(srv, wb, readOnly, notDestructive)
+	}
+	// Lienzos multipantalla opt-in y feedback visual (anotaciones).
+	if cb, ok := backend.(CanvasBackend); ok {
+		registerCanvasTools(srv, cb, readOnly, notDestructive)
 	}
 
 	return srv

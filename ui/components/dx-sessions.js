@@ -2,7 +2,8 @@
 // DioptraEngine Viewer — ui/components/dx-sessions.js
 // <dx-sessions>: sesiones abiertas de Genius Shell / Gentle Shell (adaptación de
 // Gentle Tower al estilo Reliquia). Lee GET /api/sessions; quien te necesita
-// (estado "blocked") aparece primero y resaltado. Light DOM (estilos en shell.css).
+// (estado "blocked") aparece primero y resaltado. Clickeable para ubicar y
+// filtrar su workspace correspondiente en Dioptra. Light DOM (estilos en shell.css).
 // ==========================================================================
 
 import { clearNode, el } from './shared.js';
@@ -29,6 +30,8 @@ export class DxSessions extends HTMLElement {
     super();
     this._timer = null;
     this._sig = '';
+    this._list = [];
+    this._activeProject = '';
     this._open = true;
     this._onVisibility = () => {
       if (document.visibilityState === 'visible') this._load();
@@ -49,14 +52,23 @@ export class DxSessions extends HTMLElement {
     document.removeEventListener('visibilitychange', this._onVisibility);
   }
 
+  setActiveProject(projectKey) {
+    const next = String(projectKey || '').trim().toLowerCase();
+    if (next === this._activeProject) return;
+    this._activeProject = next;
+    if (this._list.length) this._render(this._list);
+  }
+
   async _load() {
     try {
       const resp = await fetch('/api/sessions', { cache: 'no-store', headers: { Accept: 'application/json' } });
       if (!resp.ok) return;
       const data = await resp.json();
       const list = Array.isArray(data.sessions) ? data.sessions : [];
-      // Solo se redibuja si algo cambió (evita parpadeo cada 6 s).
-      const sig = list.map((s) => `${s.session}|${s.state}|${s.task || ''}|${s.stale}`).join('\n');
+      const sig = list
+        .map((s) => `${s.session}|${s.state}|${s.task || ''}|${s.sessionTitle || ''}|${s.canonicalProject || ''}|${s.parentWorkspace || ''}|${s.stale}`)
+        .join('\n');
+      this._list = list;
       if (sig === this._sig) {
         this._refreshAges(list);
         return;
@@ -100,18 +112,47 @@ export class DxSessions extends HTMLElement {
     for (const s of list) {
       const state = s.stale ? 'stale' : s.state;
       const label = s.stale ? 'Sin actividad' : (STATE_LABEL[s.state] || s.state);
-      listEl.appendChild(el('li', {
+      const targetProject = s.canonicalProject || s.project || 'proyecto';
+      const displayProject = s.parentWorkspace && s.parentWorkspace !== targetProject
+        ? `${s.parentWorkspace} · ${targetProject.replace(new RegExp(`^${s.parentWorkspace}-`), '')}`
+        : (s.project || targetProject);
+      const subtitle = s.task || s.sessionTitle || label;
+      const isActive = Boolean(
+        this._activeProject &&
+        (this._activeProject === targetProject.toLowerCase() ||
+          (s.parentWorkspace && this._activeProject === s.parentWorkspace.toLowerCase()))
+      );
+
+      const btn = el('button', {
+        type: 'button',
         className: 'dx-session',
-        dataset: { state },
-        title: `${s.agent || 'agente'} · ${s.cwd || ''}`,
+        'aria-pressed': isActive ? 'true' : 'false',
+        dataset: { state, active: isActive ? 'true' : 'false' },
+        title: `${s.agent || 'agente'} · ${s.cwd || ''} · clic para filtrar workspace`,
       },
       el('span', { className: 'dx-session-dot', 'aria-hidden': 'true' }),
       el('span', { className: 'dx-session-main' },
-        el('span', { className: 'dx-session-project' }, s.project || 'proyecto'),
-        el('span', { className: 'dx-session-task' }, s.task || label)),
+        el('span', { className: 'dx-session-project' }, displayProject),
+        el('span', { className: 'dx-session-task' }, subtitle)),
       el('span', { className: 'dx-session-meta' },
         el('span', { className: 'dx-session-state' }, label),
-        el('span', { className: 'dx-session-age' }, relativeAge(s.updatedAt)))));
+        el('span', { className: 'dx-session-age' }, relativeAge(s.updatedAt))));
+
+      btn.addEventListener('click', () => {
+        this.dispatchEvent(new CustomEvent('dx-focus-workspace', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            project: targetProject,
+            parentWorkspace: s.parentWorkspace || '',
+            label: displayProject,
+            session: s.session,
+            cwd: s.cwd || '',
+          }
+        }));
+      });
+
+      listEl.appendChild(el('li', { className: 'dx-session-row' }, btn));
     }
     this.appendChild(toggle);
     this.appendChild(listEl);

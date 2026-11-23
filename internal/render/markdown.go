@@ -455,6 +455,11 @@ func convertCodeFence(lang, codeStr string) map[string]any {
 			return diag
 		}
 
+	case "ascii", "diagram", "text", "":
+		if diag := parseASCIIDiagram(codeStr); diag != nil {
+			return diag
+		}
+
 	case "diff", "patch":
 		// Un diff unificado (varios archivos/hunks, cabeceras @@ con contexto) se
 		// conserva íntegro y se resalta como diff; partirlo en antes/después perdía

@@ -19,6 +19,94 @@ const SVG_ALLOWED_TAGS = new Set([
   'polyline', 'polygon', 'text', 'tspan', 'title', 'defs', 'marker'
 ]);
 
+const MERMAID_SVG_ALLOWED_TAGS = new Set([
+  ...SVG_ALLOWED_TAGS,
+  'clippath', 'pattern', 'lineargradient', 'radialgradient', 'stop', 'symbol', 'use', 'desc'
+]);
+
+let mermaidLoadPromise = null;
+function loadMermaidLibrary() {
+  if (typeof window !== 'undefined' && window.mermaid && typeof window.mermaid.render === 'function') {
+    return Promise.resolve(window.mermaid);
+  }
+  if (mermaidLoadPromise) return mermaidLoadPromise;
+  mermaidLoadPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-dx-mermaid="1"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(window.mermaid), { once: true });
+      existing.addEventListener('error', () => reject(new Error('mermaid no disponible')), { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = '/vendor/mermaid.min.js';
+    script.async = true;
+    script.dataset.dxMermaid = '1';
+    script.addEventListener('load', () => {
+      if (window.mermaid && typeof window.mermaid.render === 'function') {
+        resolve(window.mermaid);
+      } else {
+        reject(new Error('mermaid no inicializó'));
+      }
+    }, { once: true });
+    script.addEventListener('error', () => {
+      mermaidLoadPromise = null;
+      reject(new Error('no se pudo cargar /vendor/mermaid.min.js'));
+    }, { once: true });
+    document.head.appendChild(script);
+  });
+  return mermaidLoadPromise;
+}
+
+// Sanitización CSP-safe para SVG generado en cliente por Mermaid (extrae <style> a
+// CSSStyleSheet adoptada, elimina <script>/<foreignObject>/on* y preserva atributos vectoriales).
+function parseAndSanitizeMermaidSvg(svgString) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgString, 'image/svg+xml');
+  if (doc.querySelector('parsererror')) return null;
+  const root = doc.documentElement;
+  if (!root || root.tagName.toLowerCase() !== 'svg') return null;
+
+  const extractedCss = [];
+  const walk = (node) => {
+    for (const child of Array.from(node.children)) {
+      const tag = child.tagName.toLowerCase();
+      if (tag === 'style') {
+        if (child.textContent) extractedCss.push(child.textContent);
+        child.remove();
+        continue;
+      }
+      if (tag === 'script' || tag === 'foreignobject' || !MERMAID_SVG_ALLOWED_TAGS.has(tag)) {
+        child.remove();
+        continue;
+      }
+      for (const attr of Array.from(child.attributes)) {
+        const name = attr.name.toLowerCase();
+        const val = attr.value.trim();
+        if (name.startsWith('on') || name === 'style') {
+          child.removeAttribute(attr.name);
+        } else if ((name === 'href' || name === 'xlink:href') && !val.startsWith('#')) {
+          child.removeAttribute(attr.name);
+        }
+      }
+      walk(child);
+    }
+  };
+  for (const attr of Array.from(root.attributes)) {
+    const name = attr.name.toLowerCase();
+    if (name.startsWith('on') || name === 'width' || name === 'height' || name === 'style') {
+      root.removeAttribute(attr.name);
+    }
+  }
+  walk(root);
+  if (!root.getAttribute('viewBox')) {
+    root.setAttribute('viewBox', '0 0 800 420');
+  }
+  return {
+    svg: document.importNode(root, true),
+    css: extractedCss.join('\n')
+  };
+}
+
 const diagramSheet = createSheet(`
   /* Vista en grande: el lienzo ocupa casi toda la pantalla; el texto alternativo se oculta. */
   :host(:popover-open) {
@@ -468,10 +556,23 @@ export class DxDiagramBlock extends HTMLElement {
     this._curBox = { x: 0, y: 0, w: 800, h: 360 };
     this._svgEl = null;
     this._zoomReadout = null;
+    this._mermaidSeq = 0;
+    this._onThemeChange = () => {
+      if (this._data?.kind === 'mermaid') this.render();
+    };
     this.addEventListener('toggle', () => this._onFullscreenChange());
     this._viewportSheet = createSheet('[part="viewport"] { height: 360px; }');
+    this._mermaidThemeSheet = createSheet('');
     this.attachShadow({ mode: 'open' });
-    adoptSheets(this.shadowRoot, baseBlockSheet, diagramSheet, this._viewportSheet);
+    adoptSheets(this.shadowRoot, baseBlockSheet, diagramSheet, this._viewportSheet, this._mermaidThemeSheet);
+  }
+
+  connectedCallback() {
+    window.addEventListener('dx-theme', this._onThemeChange);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener('dx-theme', this._onThemeChange);
   }
 
   get data() {
@@ -480,7 +581,9 @@ export class DxDiagramBlock extends HTMLElement {
 
   set data(val) {
     this._data = val;
-    const kind = val?.kind === 'seq' || val?.kind === 'tree' || val?.kind === 'flow' ? val.kind : 'flow';
+    const kind = val?.kind === 'seq' || val?.kind === 'tree' || val?.kind === 'flow' || val?.kind === 'mermaid'
+      ? val.kind
+      : 'flow';
     if (this.getAttribute('kind') !== kind) {
       this.setAttribute('kind', kind);
     }
@@ -931,6 +1034,10 @@ export class DxDiagramBlock extends HTMLElement {
     if (!this._data) return;
 
     const kind = this.getAttribute('kind') || 'flow';
+    if (kind === 'mermaid' && typeof this._data.src === 'string' && this._data.src.trim()) {
+      this._renderMermaidLazy(this._data.src.trim());
+      return;
+    }
     const nodes = Array.isArray(this._data.nodes) ? this._data.nodes : [];
     const edges = Array.isArray(this._data.edges) ? this._data.edges : [];
     const nodeLabels = new Map(nodes.map((n) => [n.id, n.label]));
@@ -1024,6 +1131,89 @@ export class DxDiagramBlock extends HTMLElement {
     figure.appendChild(viewport);
     figure.appendChild(textAlt);
     this.shadowRoot.appendChild(figure);
+  }
+
+  async _renderMermaidLazy(src) {
+    const seq = ++this._mermaidSeq;
+    const figure = el('figure', { part: 'figure' });
+    const status = el('div', { className: 'svg-error' }, 'Renderizando diagrama Mermaid…');
+    const pre = el('pre', null, el('code', null, src));
+    const textAlt = el(
+      'details',
+      { part: 'text-alt' },
+      el('summary', null, 'Ver código fuente Mermaid'),
+      pre
+    );
+    figure.appendChild(status);
+    figure.appendChild(textAlt);
+    this.shadowRoot.appendChild(figure);
+
+    try {
+      const mermaid = await loadMermaidLibrary();
+      if (seq !== this._mermaidSeq || !this.isConnected) return;
+      const isLight = document.documentElement.dataset.theme === 'light';
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        htmlLabels: false,
+        flowchart: { htmlLabels: false },
+        theme: isLight ? 'default' : 'dark',
+        fontFamily: 'Poppins, system-ui, sans-serif'
+      });
+      const renderId = `${this._uid}-m-${seq}`;
+      const result = await mermaid.render(renderId, src);
+      if (seq !== this._mermaidSeq || !this.isConnected) return;
+      const parsed = parseAndSanitizeMermaidSvg(result?.svg || '');
+      if (!parsed) throw new Error('SVG Mermaid inválido');
+
+      this._mermaidThemeSheet.replaceSync(parsed.css || '');
+      const vbParts = (parsed.svg.getAttribute('viewBox') || '0 0 800 420')
+        .trim()
+        .split(/[\s,]+/)
+        .map(Number);
+      const [bx = 0, by = 0, bw = 800, bh = 420] = vbParts;
+      const built = { svg: parsed.svg, x: bx, y: by, w: bw || 800, h: bh || 420 };
+
+      this._baseBox = { x: built.x, y: built.y, w: built.w, h: built.h };
+      this._curBox = { ...this._baseBox };
+      this._viewportSheet.replaceSync(`[part="viewport"] { height: min(60vh, ${Math.max(240, Math.round(built.h))}px); }`);
+
+      built.svg.setAttribute('part', 'svg');
+      built.svg.setAttribute('role', 'img');
+      built.svg.setAttribute('tabindex', '0');
+      built.svg.setAttribute('aria-label', 'Diagrama Mermaid');
+      this._svgEl = built.svg;
+
+      const btnOut = el('button', { type: 'button', 'aria-label': 'Alejar', title: 'Alejar (−)' }, createUiIcon('minus', 14));
+      const btnIn = el('button', { type: 'button', 'aria-label': 'Acercar', title: 'Acercar (+)' }, createUiIcon('plus', 14));
+      const btnFit = el('button', { type: 'button', 'aria-label': 'Ajustar', title: 'Ajustar encuadre (0)' }, createUiIcon('fit', 14));
+      const canExpand = typeof this.showPopover === 'function';
+      const btnExpand = canExpand
+        ? el('button', { type: 'button', 'aria-label': 'Ver en grande', title: 'Ver en grande (F) · Esc para cerrar' }, createUiIcon('maximize', 14))
+        : null;
+      if (btnExpand) {
+        btnExpand.addEventListener('click', () => this._toggleExpanded());
+        this._expandBtn = btnExpand;
+      }
+      this._zoomReadout = el('span', { className: 'zoom-readout' }, '100%');
+      btnOut.addEventListener('click', () => this._zoomBy(1 / 1.25));
+      btnIn.addEventListener('click', () => this._zoomBy(1.25));
+      btnFit.addEventListener('click', () => this._resetViewBox());
+
+      const toolbar = el('div', { part: 'toolbar' }, btnOut, this._zoomReadout, btnIn, btnFit, btnExpand);
+      const viewport = el('div', { part: 'viewport' }, built.svg);
+      this._attachViewportInteractions(viewport, built.svg);
+      this._applyViewBox();
+
+      clearNode(figure);
+      figure.appendChild(toolbar);
+      figure.appendChild(viewport);
+      figure.appendChild(textAlt);
+    } catch (err) {
+      if (seq !== this._mermaidSeq || !this.isConnected) return;
+      status.textContent = `No se pudo renderizar Mermaid en el navegador (${err?.message || 'motor no disponible'}).`;
+      textAlt.open = true;
+    }
   }
 }
 

@@ -15,6 +15,7 @@ export { DxDiagramBlock } from './diagram-block.js';
 export { DxActionChecklist } from './action-checklist.js';
 export { DxProseBlock } from './prose-block.js';
 export { DxFreeCanvas } from './free-canvas.js';
+export { DxDesignCanvas } from './dx-design-canvas.js';
 export { DxTimeline } from './dx-timeline.js';
 export { DxSessions } from './dx-sessions.js';
 export { DxReport, instantiateBlockTree } from './dx-report.js';

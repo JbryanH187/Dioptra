@@ -98,7 +98,9 @@ Send regular GitHub Markdown to `publish_report` (or run `dioptra open report.md
 | `get_report_state` | Read current Markdown and which checklist items the human checked (`done: true`) |
 | `dioptra_context` | Lightweight session-start summary of recent reports for a project |
 | `get_layout_contract` | Compact schema (`dioptra-synth/1.1`) for optional `blocks_override` / `free-canvas` |
-| `board_list` / `board_task` | Multi-role agent task board (`dev`, `tester`, `po`, `moderador`) with anti-hallucination audit |
+| `board_list` / `board_task` | Multi-role agent task board (`dev`, `tester`, `po`, `ux`, `moderador`) with anti-hallucination audit |
+| `workspace_audit` / `workspace_organize` | Deterministic duplicate & sub-team detection + additive, reversible workspace organization |
+| `canvas_register` / `canvas_list` / `canvas_get_feedback` / `canvas_resolve_feedback` | Opt-in local multi-screen UI/UX design canvases with visual Pin/Box/Marker annotations for agents |
 | `e2e_start` / `e2e_record` / `e2e_ingest_har` / `e2e_finish` | Live E2E test observation & sanitized HAR ingestion |
 
 Resource: `dioptra://contract/layout`
@@ -115,7 +117,7 @@ dioptra open  [file.md] [--project name] [--no-browser]  # Import/open a Markdow
 dioptra autostart on|off|status                          # Login autostart (Windows)
 dioptra doctor [--probe]                                 # Check SQLite WAL/FTS5, MCP contract & daemon
 dioptra stats                                            # Cumulative token & USD overhead metrics
-dioptra db check|backup|reindex|alias ...                # SQLite maintenance & project aliases
+dioptra db check|backup|reindex|alias|group|audit ...    # SQLite maintenance, aliases, sub-teams & workspace sync audit
 dioptra roots list|set <project> <path>|remove <project> # Authorized source roots for code viewer
 ```
 

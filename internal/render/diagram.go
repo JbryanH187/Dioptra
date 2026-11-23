@@ -109,7 +109,14 @@ func CompileFlowDiagramSVG(ctx context.Context, block map[string]any) (string, e
 	}
 
 	var d2Buf strings.Builder
-	d2Buf.WriteString("direction: right\n")
+	dir := "right"
+	if rawDir, ok := block["direction"].(string); ok {
+		switch rawDir {
+		case "right", "down", "left", "up":
+			dir = rawDir
+		}
+	}
+	fmt.Fprintf(&d2Buf, "direction: %s\n", dir)
 	safeIDMap := make(map[string]string, len(nodes))
 	reverseIDMap := make(map[string]string, len(nodes))
 	for i, n := range nodes {

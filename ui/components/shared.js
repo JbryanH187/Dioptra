@@ -358,6 +358,15 @@ export function createUiIcon(name, size = 16) {
       root.appendChild(svgEl('polyline', { points: '3 3 3 8 8 8' }));
       root.appendChild(svgEl('polyline', { points: '12 7 12 12 15.5 14' }));
       break;
+    case 'close':
+      root.appendChild(svgEl('line', { x1: '6', y1: '6', x2: '18', y2: '18' }));
+      root.appendChild(svgEl('line', { x1: '18', y1: '6', x2: '6', y2: '18' }));
+      break;
+    case 'layers':
+      root.appendChild(svgEl('polygon', { points: '12 2 2 7 12 12 22 7 12 2' }));
+      root.appendChild(svgEl('polyline', { points: '2 12 12 17 22 12' }));
+      root.appendChild(svgEl('polyline', { points: '2 17 12 22 22 17' }));
+      break;
     default:
       root.appendChild(svgEl('circle', { cx: '12', cy: '12', r: '8' }));
   }
@@ -754,7 +763,7 @@ const ALLOWED_BLOCK_KEYS = Object.freeze({
   table: new Set(['t', 'cols', 'rows', 'sort', 'filter']),
   section: new Set(['t', 'title', 'sev', 'open', 'blocks']),
   code: new Set(['t', 'lang', 'src', 'old', 'ref', 'hl', 'tokens', 'hunks', 'degraded']),
-  diagram: new Set(['t', 'kind', 'nodes', 'edges', 'svg']),
+  diagram: new Set(['t', 'kind', 'nodes', 'edges', 'svg', 'src', 'direction']),
   checklist: new Set(['t', 'items', 'readonly']),
   prose: new Set(['t', 'title', 'md', 'degraded']),
   canvas: new Set(['t', 'html', 'src', 'h'])
@@ -1076,6 +1085,18 @@ export function normalizeBlock(rawBlock, path, depth, warnings) {
 
     case 'diagram': {
       const kind = rawBlock.kind;
+      if (kind === 'mermaid') {
+        if (typeof rawBlock.src !== 'string' || !rawBlock.src.trim()) {
+          return degradeBlock(rawBlock, path, 'diagram', 'diagrama mermaid sin src', warnings);
+        }
+        return {
+          t: 'diagram',
+          data: {
+            kind: 'mermaid',
+            src: rawBlock.src
+          }
+        };
+      }
       if (kind !== 'flow' && kind !== 'seq' && kind !== 'tree') {
         return degradeBlock(rawBlock, path, 'diagram', `kind inválido "${String(kind)}"`, warnings);
       }
@@ -1134,6 +1155,7 @@ export function normalizeBlock(rawBlock, path, depth, warnings) {
           kind: effectiveKind,
           nodes: cleanNodes,
           edges: cleanEdges,
+          direction: typeof rawBlock.direction === 'string' ? rawBlock.direction : undefined,
           svg: hasSvg ? rawBlock.svg : undefined
         }
       };

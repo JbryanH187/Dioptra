@@ -15,6 +15,9 @@ type ProjectSummary struct {
 	Tools        []string `json:"tools"`
 	Models       []string `json:"models"`
 	Aliases      []string `json:"aliases"`
+	ParentKey    string   `json:"parentKey,omitempty"`
+	SubLabel     string   `json:"subLabel,omitempty"`
+	HasCanvas    bool     `json:"hasCanvas,omitempty"`
 }
 
 // ListProjects agrupa por clave canónica (alias resueltos), ordenado por última actividad descendente.
@@ -67,6 +70,21 @@ func (s *Store) ListProjects(ctx context.Context) ([]ProjectSummary, error) {
 	for _, a := range aliases {
 		if i, ok := idx[a.CanonicalKey]; ok {
 			out[i].Aliases = append(out[i].Aliases, a.AliasKey)
+		}
+	}
+	if groups, err := s.ListWorkspaceGroups(ctx); err == nil {
+		for _, g := range groups {
+			if i, ok := idx[g.ProjectKey]; ok {
+				out[i].ParentKey = g.ParentKey
+				out[i].SubLabel = g.Label
+			}
+		}
+	}
+	if canvases, err := s.ListDesignCanvases(ctx, ""); err == nil {
+		for _, c := range canvases {
+			if i, ok := idx[c.ProjectKey]; ok {
+				out[i].HasCanvas = true
+			}
 		}
 	}
 	return out, nil
