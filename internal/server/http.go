@@ -189,6 +189,7 @@ func (s *AppServer) registerRoutes() {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"status":  "ok",
 			"service": "dioptra",
+			"version": mcpserver.ServerVersion,
 			"dir":     s.store.BaseDir(),
 		})
 	})

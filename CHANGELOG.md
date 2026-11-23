@@ -3,6 +3,13 @@
 Formato: una sección por versión publicada (`git tag vX.Y.Z`; el binario se compila con
 `./scripts/check.ps1 -Version vX.Y.Z`). Lo más reciente arriba.
 
+## v1.2.2 — 2026-11-23
+
+- **Registros acotados de actividad en `<dx-sessions>`:** `/api/sessions` lee el campo opcional `activity` (hasta 6 entradas acotadas por sesión) desde `gentle-shell.agent-status/v1` y la barra lateral muestra en vivo qué subagente o proceso en segundo plano corre en cada terminal de Genius Shell.
+- **Salud con versión (`/api/health`):** expone `"version"` para introspección directa desde `/presentation` y clientes locales.
+- **Skills canónicas de lienzo y equipo (`37cea0e`):** nuevas skills `arquitectura-lienzo-ux` (plano estructural agnóstico al estilo) y `dioptra-design-canvas` (protocolo MCP + visor), más actualización de `trabajo-en-equipo` (rol `ux`) y `dioptra-report-writer` (diagramas v1.2).
+- **Incluye `v1.2.1` (`664d744`):** `DesignCanvasCSP` permite Google Fonts (`fonts.googleapis.com` / `fonts.gstatic.com`) e imágenes `https:` manteniendo `connect-src 'none'` y `<iframe sandbox="allow-scripts">`.
+
 ## v1.2.0 — 2026-11-23
 
 ### Workspaces jerárquicos y Sync interactivo de duplicados

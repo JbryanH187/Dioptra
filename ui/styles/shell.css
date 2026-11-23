@@ -1922,6 +1922,36 @@ dx-sessions {
   white-space: nowrap;
 }
 
+.dx-session-activity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.dx-session-act-chip {
+  font-size: 0.625rem;
+  line-height: 1.25;
+  padding: 0.08rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-subtle, rgba(128, 128, 128, 0.25));
+  color: var(--color-text-secondary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dx-session-act-chip[data-act-state="running"] {
+  border-color: var(--color-sev-success-fg, #2f855a);
+  color: var(--color-sev-success-fg, #2f855a);
+}
+
+.dx-session-act-chip[data-act-state="failed"] {
+  border-color: var(--color-sev-error-fg, #c53030);
+  color: var(--color-sev-error-fg, #c53030);
+}
+
 .dx-session-meta {
   display: flex;
   flex-direction: column;

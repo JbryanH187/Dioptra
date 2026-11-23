@@ -24,23 +24,34 @@ const (
 	maxStatusFileBytes  = 64 * 1024
 	maxSessionTitleRead = 512 * 1024
 	maxSessionsReturned = 200
+	maxActivityItems    = 6
 	staleAfter          = 10 * time.Minute // sin actualizaciones: probablemente cerrada o colgada
 	dropAfter           = 24 * time.Hour   // demasiado vieja para mostrarse
 )
 
+// AgentActivity resume un subagente o proceso en segundo plano activo/reciente (acotado, v4.9+).
+type AgentActivity struct {
+	Kind   string `json:"kind"`            // subagent | job
+	Name   string `json:"name"`
+	State  string `json:"state"`           // running | done | failed
+	Model  string `json:"model,omitempty"`
+	Detail string `json:"detail,omitempty"`
+}
+
 // AgentSession es lo que la UI necesita de cada sesión.
 type AgentSession struct {
-	Agent            string `json:"agent"`
-	Session          string `json:"session"`
-	Project          string `json:"project"`
-	CanonicalProject string `json:"canonicalProject,omitempty"`
-	ParentWorkspace  string `json:"parentWorkspace,omitempty"`
-	Cwd              string `json:"cwd"`
-	State            string `json:"state"` // working | blocked | idle
-	Task             string `json:"task,omitempty"`
-	SessionTitle     string `json:"sessionTitle,omitempty"`
-	UpdatedAt        string `json:"updatedAt"`
-	Stale            bool   `json:"stale"`
+	Agent            string          `json:"agent"`
+	Session          string          `json:"session"`
+	Project          string          `json:"project"`
+	CanonicalProject string          `json:"canonicalProject,omitempty"`
+	ParentWorkspace  string          `json:"parentWorkspace,omitempty"`
+	Cwd              string          `json:"cwd"`
+	State            string          `json:"state"` // working | blocked | idle
+	Task             string          `json:"task,omitempty"`
+	SessionTitle     string          `json:"sessionTitle,omitempty"`
+	Activity         []AgentActivity `json:"activity,omitempty"`
+	UpdatedAt        string          `json:"updatedAt"`
+	Stale            bool            `json:"stale"`
 }
 
 type agentStatusFile struct {
@@ -52,7 +63,8 @@ type agentStatusFile struct {
 	Task    *struct {
 		Title string `json:"title"`
 	} `json:"task"`
-	UpdatedAt string `json:"updatedAt"`
+	Activity  []AgentActivity `json:"activity,omitempty"`
+	UpdatedAt string          `json:"updatedAt"`
 }
 
 // sessionStatusDirs: directorios donde buscar estados. DIOPTRA_SESSION_DIRS
@@ -122,6 +134,9 @@ func ReadAgentSessions(dirs []string, now time.Time) []AgentSession {
 			if s.Task == "" {
 				s.SessionTitle = readGeniusSessionTitle(dir, f.Session)
 			}
+			if len(f.Activity) > 0 {
+				s.Activity = normalizeAgentActivity(f.Activity)
+			}
 			out = append(out, s)
 		}
 	}
@@ -138,6 +153,53 @@ func ReadAgentSessions(dirs []string, now time.Time) []AgentSession {
 	})
 	if len(out) > maxSessionsReturned {
 		out = out[:maxSessionsReturned]
+	}
+	return out
+}
+
+func truncateRunes(s string, max int) string {
+	s = strings.TrimSpace(s)
+	if s == "" || max <= 0 {
+		return ""
+	}
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return string(r[:max])
+}
+
+func normalizeAgentActivity(items []AgentActivity) []AgentActivity {
+	if len(items) == 0 {
+		return nil
+	}
+	out := make([]AgentActivity, 0, min(len(items), maxActivityItems))
+	for _, it := range items {
+		if len(out) >= maxActivityItems {
+			break
+		}
+		name := truncateRunes(it.Name, 48)
+		if name == "" {
+			continue
+		}
+		kind := strings.ToLower(strings.TrimSpace(it.Kind))
+		if kind != "subagent" && kind != "job" {
+			kind = "subagent"
+		}
+		st := strings.ToLower(strings.TrimSpace(it.State))
+		if st != "running" && st != "done" && st != "failed" {
+			st = "running"
+		}
+		out = append(out, AgentActivity{
+			Kind:   kind,
+			Name:   name,
+			State:  st,
+			Model:  truncateRunes(it.Model, 48),
+			Detail: truncateRunes(it.Detail, 80),
+		})
+	}
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }

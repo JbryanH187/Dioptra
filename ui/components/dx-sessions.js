@@ -66,7 +66,12 @@ export class DxSessions extends HTMLElement {
       const data = await resp.json();
       const list = Array.isArray(data.sessions) ? data.sessions : [];
       const sig = list
-        .map((s) => `${s.session}|${s.state}|${s.task || ''}|${s.sessionTitle || ''}|${s.canonicalProject || ''}|${s.parentWorkspace || ''}|${s.stale}`)
+        .map((s) => {
+          const actSig = Array.isArray(s.activity)
+            ? s.activity.map((a) => `${a.kind}:${a.name}:${a.state}:${a.model || ''}`).join(',')
+            : '';
+          return `${s.session}|${s.state}|${s.task || ''}|${s.sessionTitle || ''}|${s.canonicalProject || ''}|${s.parentWorkspace || ''}|${s.stale}|${actSig}`;
+        })
         .join('\n');
       this._list = list;
       if (sig === this._sig) {
@@ -123,6 +128,31 @@ export class DxSessions extends HTMLElement {
           (s.parentWorkspace && this._activeProject === s.parentWorkspace.toLowerCase()))
       );
 
+      const activityList = Array.isArray(s.activity) ? s.activity : [];
+      const visibleActivity = activityList
+        .filter((a) => a && a.name)
+        .sort((a, b) => (a.state === 'running' ? -1 : 0) - (b.state === 'running' ? -1 : 0))
+        .slice(0, 3);
+      const activityNode = visibleActivity.length
+        ? el(
+            'span',
+            { className: 'dx-session-activity' },
+            ...visibleActivity.map((a) => {
+              const shortModel = a.model ? ` · ${a.model.replace(/^claude-/, '')}` : '';
+              const prefix = a.kind === 'job' ? 'job ' : '';
+              return el(
+                'span',
+                {
+                  className: 'dx-session-act-chip',
+                  dataset: { actState: a.state || 'running' },
+                  title: `${a.kind || 'subagent'}: ${a.name}${a.model ? ` (${a.model})` : ''}${a.detail ? ` — ${a.detail}` : ''}`,
+                },
+                `${prefix}${a.name}${shortModel}`
+              );
+            })
+          )
+        : null;
+
       const btn = el('button', {
         type: 'button',
         className: 'dx-session',
@@ -133,7 +163,8 @@ export class DxSessions extends HTMLElement {
       el('span', { className: 'dx-session-dot', 'aria-hidden': 'true' }),
       el('span', { className: 'dx-session-main' },
         el('span', { className: 'dx-session-project' }, displayProject),
-        el('span', { className: 'dx-session-task' }, subtitle)),
+        el('span', { className: 'dx-session-task' }, subtitle),
+        activityNode),
       el('span', { className: 'dx-session-meta' },
         el('span', { className: 'dx-session-state' }, label),
         el('span', { className: 'dx-session-age' }, relativeAge(s.updatedAt))));

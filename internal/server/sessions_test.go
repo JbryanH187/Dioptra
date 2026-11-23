@@ -79,3 +79,39 @@ func TestReadAgentSessions_EnrichesTitleAndWorkspace(t *testing.T) {
 		t.Fatalf("enriquecimiento de workspace inesperado: %+v", got[0])
 	}
 }
+
+func TestReadAgentSessions_ParsesAndBoundsActivity(t *testing.T) {
+	dir := t.TempDir()
+	now := time.Date(2026, 11, 23, 12, 0, 0, 0, time.UTC)
+	writeStatus(t, dir, "act.json", `{
+		"schema":"gentle-shell.agent-status/v1",
+		"agent":"genius-code",
+		"session":"s-act",
+		"cwd":"C:/Dev/tsugi",
+		"state":"working",
+		"task":{"title":"Implementando lienzo"},
+		"activity":[
+			{"kind":"subagent","name":"gentle_ai_worker","state":"running","model":"claude-sonnet-5-5","detail":"editando"},
+			{"kind":"job","name":"npm test","state":"done"},
+			{"kind":"otro","name":"a3","state":"desconocido"},
+			{"kind":"subagent","name":"a4","state":"failed"},
+			{"kind":"subagent","name":"a5","state":"done"},
+			{"kind":"subagent","name":"a6","state":"done"},
+			{"kind":"subagent","name":"a7-overflow","state":"running"}
+		],
+		"updatedAt":"`+now.Add(-10*time.Second).Format(time.RFC3339)+`"
+	}`)
+	got := ReadAgentSessions([]string{dir}, now)
+	if len(got) != 1 {
+		t.Fatalf("esperaba 1 sesión, obtuvo %d", len(got))
+	}
+	if len(got[0].Activity) != maxActivityItems {
+		t.Fatalf("esperaba %d registros acotados, obtuvo %d", maxActivityItems, len(got[0].Activity))
+	}
+	if got[0].Activity[0].Name != "gentle_ai_worker" || got[0].Activity[0].Model != "claude-sonnet-5-5" {
+		t.Fatalf("primer registro inesperado: %+v", got[0].Activity[0])
+	}
+	if got[0].Activity[2].Kind != "subagent" || got[0].Activity[2].State != "running" {
+		t.Fatalf("normalización de kind/state falló: %+v", got[0].Activity[2])
+	}
+}
